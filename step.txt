@@ -1,13 +1,11 @@
 Step per creare un linguaggio interpretato:
-	Linguaggio da Interpretare: Python se non sono importanti le prestazioni, altrimenti Cython
-	Definire la sintassi del nuovo linguaggio (404):
-		Stile;
-		Interruzione istruzioni;
-		Blocchi condizionali;
-		Se Case Sensitive;
-	Scrivere il Lexer (eventualmente con libreria o regex), per convertire la sintassi del linguaggio in token
+	Scegliere il linguaggio con cui scrivere l'interprete: Python se non sono importanti le prestazioni, altrimenti Cython
+	Scegliere il linguaggio da interpretare (C++ o Javascript);
+	Scrivere il Lexer (a scelta libreria o regex), per convertire la sintassi del linguaggio in token
 	Scrivere il Parser, per ordirare i token e costruire AST
 	Scrivere l'Interpreter, per eseguire il nuovo linguaggio
 	Scrivere il main per la gestione di errori
-	Fare vari test da accordare con il professore
+	Fare vari test
 	Scrivere documentazione
+
+Comunicare aggiornamenti con il professore tramite gruppo teams
