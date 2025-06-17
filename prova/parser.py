@@ -174,7 +174,11 @@ class Parser:
     def factor(self):
         # Gestisce numeri, stringhe, variabili, e parentesi
         tok = self.peek()
-        if tok[0] == "INT":
+        if tok[0] == "NOT":
+            self.advance()
+            expr = self.factor()
+            return ("not", expr)
+        elif tok[0] == "INT":
             return ("int", self.advance()[1])
         elif tok[0] == "FLOAT":
             return ("float", self.advance()[1])
@@ -202,7 +206,7 @@ if __name__ == "__main__":
     
     a = 5;
     float b = 3;
-    if (!a > b) {
+    if (!(a > b)) {
         cout << "a maggiore";
     } 
     '''

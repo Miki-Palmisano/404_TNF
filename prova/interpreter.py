@@ -81,6 +81,8 @@ class Interpreter:
                     case "LE": return l <= r
                     case "GE": return l >= r
                 raise RuntimeError(f"Unsupported operator {op}")
+            case ("not", inner):
+                return not self.eval_expr(inner)
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
 
