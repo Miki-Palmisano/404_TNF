@@ -23,10 +23,10 @@ TOKEN_SPECIFICATION = [
     ('MINUS',       r'-'),               # -
     ('TIMES',       r'\*'),              # *
     ('DIVIDE',      r'/'),               # /
-    ('LT',          r'<'),               # minore
-    ('GT',          r'>'),               # maggiore
     ('LE',          r'<='),              # minore o uguale
     ('GE',          r'>='),              # maggiore o uguale
+    ('LT',          r'<'),               # minore
+    ('GT',          r'>'),               # maggiore
     ('LPAREN',      r'\('),              # ( parentesi aperta
     ('RPAREN',      r'\)'),              # ) parentesi chiusa
     ('LBRACE',      r'\{'),              # { parentesi aperta
@@ -44,7 +44,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout'
+    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main'
 }
 
 '''Cosa fa:
@@ -87,7 +87,20 @@ def lexer(code):
         else:
             if typ == 'ID' and val in KEYWORDS: # Se trova un identificatore (ID) che corrisponde a una keyword (es. "if"), lo trasforma in un token di tipo "IF"
                 typ = val.upper()       # Esempio: "if" -> "IF"
-            tokens.append((typ, val))   # aggiunge (tipo, valore) alla lista dei token trovati.
+            tokens.append((typ, val, line_num))   # aggiunge (tipo, valore) alla lista dei token trovati.
         pos = mo.end()                  # restituisce l’indice (posizione) dopo l’ultimo carattere del token trovato.
         mo = get_token(code, pos)       # Rilancia la ricerca del prossimo token a partire dalla posizione pos, cioè subito dopo il token precedente.
     return tokens
+
+# === ESEMPIO USO ===
+if __name__ == "__main__":
+    # Esempio di codice C++ da analizzare
+    codice = '''
+    int a = 5;
+    float b = 3;
+    if (a >= b) {
+        cout << "a maggiore";
+    }
+    '''
+    for token in lexer(codice):
+        print(token)

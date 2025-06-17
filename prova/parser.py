@@ -21,7 +21,7 @@ class Parser:
         # altrimenti lancia un errore di sintassi
         tok = self.advance()
         if tok is None or tok[0] != type_:
-            raise SyntaxError(f"Expected {type_}, got {tok}")
+            raise self.error(f"Expected {type_}, got {tok}", tok)
         return tok
 
     def parse(self):
@@ -51,19 +51,20 @@ class Parser:
         elif tok[0] == "CIN":
             return self.cin_statement()  # Input
         else:
-            self.error(f"Unexpected token {tok}")  # Token non atteso
+            self.error(f"Unexpected token {tok}", tok)  # Token non atteso
 
     def declaration(self):
         # Gestisce dichiarazione variabili, es: int x = 5;
         type_ = self.advance()[0]  # Prende il tipo (INT/FLOAT/STRING)
         name = self.expect("ID")[1]  # Prende il nome della variabile
         expr = None  # Espressione di inizializzazione (opzionale)
-        if self.peek() and self.peek()[0] == "ASSIGN":
+        tok = self.peek()
+        if tok and tok[0] == "ASSIGN":
             self.advance()  # Consuma il segno "="
             expr = self.expression()  # Parso l'espressione a destra
 
             if expr[0] == "float" and type_ == "INT":
-                self.error("Cannot assign Float number to Int variable")
+                self.error(f"Cannot assign Float number to Int variable", tok)
             elif expr[0] == "int" and type_ == "FLOAT":
                 expr = ("float", f"{expr[1]}.0")
 
@@ -73,7 +74,8 @@ class Parser:
     def assignment_or_funcall(self):
         # Gestisce assegnazione (es: x = 5;) o chiamata funzione (es: foo(3);)
         name = self.advance()[1]  # Prende il nome (ID)
-        if self.peek() and self.peek()[0] == "ASSIGN":
+        tok = self.peek()
+        if tok and tok[0] == "ASSIGN":
             self.advance()  # Consuma "="
             expr = self.expression()  # Valuta la parte destra dell'assegnazione
             self.expect("SEMICOLON")  # Consuma ";"
@@ -89,7 +91,7 @@ class Parser:
             self.expect("SEMICOLON")  # Consuma ";"
             return ("funcall", name, args)
         else:
-            self.error("Invalid statement after identifier")
+            self.error("Invalid statement after identifier", tok)
 
     def if_statement(self):
         # Gestisce istruzione if...else...
@@ -188,19 +190,21 @@ class Parser:
         else:
             self.error("Invalid factor")  # Espressione non valida
 
-    def error(self, msg):
-        raise SyntaxError(msg)  # Stampa un errore di sintassi
+    def error(self, msg, tok):
+        line = tok[2] if tok else '?'
+        raise SyntaxError(f"Error in line {tok}: {msg}")  # Stampa un errore di sintassi
 
 
 # === ESEMPIO USO ===
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
-    codice = '''
-    int a = 5;
+    codice = ''' 
+    
+    a = 5;
     float b = 3;
     if (a > b) {
         cout << "a maggiore";
-    }
+    } 
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser
