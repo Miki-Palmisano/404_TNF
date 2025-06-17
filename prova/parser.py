@@ -192,7 +192,7 @@ if __name__ == "__main__":
     float b = 3.2;
     if (a > b) {
         cout << "a maggiore";
-    } else {
+    } else{
         cout << "b maggiore";
     }
     '''

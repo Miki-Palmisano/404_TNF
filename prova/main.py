@@ -1,4 +1,4 @@
-from lexer import tokenize
+from lexer import lexer
 from parser import Parser
 
 code = '''
@@ -7,8 +7,10 @@ function add(a, b) {
 }
 '''
 
-tokens = tokenize(code)
+tokens = lexer(code)
 parser = Parser(tokens)
 ast = parser.parse()
 
-print(ast.__dict__)  # stampa la struttura della funzione
+from pprint import pprint
+
+pprint(ast)

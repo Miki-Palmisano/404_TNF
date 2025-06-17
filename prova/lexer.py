@@ -5,15 +5,24 @@ import re
 Cosa fa:
 Qui elenchi tutti i tipi di token che il lexer deve riconoscere, ciascuno associato a una regex.
 L’ordine è importante: i token con pattern più lunghi (come == o &&) vanno prima di quelli più corti (come = o &).
+
+\d cifre
+* 0 o più
+^ negazione
+[ ] insieme di tutti i caratteri indicati
+
 '''
+
+
 TOKEN_SPECIFICATION = [
-    ('NUMBER',      r'\d+\.\d+|\d+'),    # Float or Integer
-    ('STRING',      r'"[^"\n]*"'),       # String between double quotes
-    ('ID',          r'[a-zA-Z_]\w*'),    # Identifiers
-    ('LSHIFT',      r'<<'),              # <<   <---- PRIMA
-    ('RSHIFT',      r'>>'),              # >>   <---- PRIMA
-    ('EQ',          r'=='),              # Equal ==
-    ('ASSIGN',      r'='),               # Assignment =
+    ('FLOAT',       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
+    ('INT',         r'\d+'),             # int number -> \d+ una o più cifre
+    ('STRING',      r'"[^"\n]*"'),       # Stringa delimitata da due virgolette -> [^"\n] che non siano virgolette o a capo, * che sia 0 o più, " " che siano delimitate da virgolette
+    ('ID',          r'[a-zA-Z_]\w*'),    # Identificatore -> qualsiasi sequenza di caratteri che cominci con una lettera (maiuscola o minuscola) o con il carattere _, \w* seguito anche da lettere o numeri
+    ('LSHIFT',      r'<<'),              # << indirizzamento
+    ('RSHIFT',      r'>>'),              # >> indirizzamento
+    ('EQ',          r'=='),              # Equal
+    ('ASSIGN',      r'='),               # Assegnazione
     ('AND',         r'&&'),              # And
     ('OR',          r'\|\|'),            # Or
     ('NOT',         r'!'),               # Not
@@ -21,17 +30,19 @@ TOKEN_SPECIFICATION = [
     ('MINUS',       r'-'),               # -
     ('TIMES',       r'\*'),              # *
     ('DIVIDE',      r'/'),               # /
-    ('LT',          r'<'),               # <    <---- DOPO <<
-    ('GT',          r'>'),               # >    <---- DOPO >>
-    ('LPAREN',      r'\('),              # (
-    ('RPAREN',      r'\)'),              # )
-    ('LBRACE',      r'\{'),              # {
-    ('RBRACE',      r'\}'),              # }
+    ('LE',          r'<='),              # minore o uguale
+    ('GE',          r'>='),              # maggiore o uguale
+    ('LT',          r'<'),               # minore
+    ('GT',          r'>'),               # maggiore
+    ('LPAREN',      r'\('),              # ( parentesi aperta
+    ('RPAREN',      r'\)'),              # ) parentesi chiusa
+    ('LBRACE',      r'\{'),              # { parentesi aperta
+    ('RBRACE',      r'\}'),              # } parentesi chiusa
     ('SEMICOLON',   r';'),               # ;
     ('COMMA',       r','),               # ,
-    ('SKIP',        r'[ \t]+'),          # Skip over spaces and tabs
-    ('NEWLINE',     r'\n'),              # Newline
-    ('MISMATCH',    r'.'),               # Any other character
+    ('SKIP',        r'[ \t]+'),          # Ignora gli spazi e le tabulazioni, non significative in C++
+    ('NEWLINE',     r'\n'),              # Nuova linea
+    ('MISMATCH',    r'.'),               # qualsiasi altro carattere
 ]
 
 
@@ -87,15 +98,3 @@ def lexer(code):
         pos = mo.end()                  # restituisce l’indice (posizione) dopo l’ultimo carattere del token trovato.
         mo = get_token(code, pos)       # Rilancia la ricerca del prossimo token a partire dalla posizione pos, cioè subito dopo il token precedente.
     return tokens
-
-# === ESEMPIO USO ===
-if __name__ == "__main__":
-    codice = '''
-    int a = 5;
-    float b = 3.2;
-    if (a > b) {
-        cout << "a maggiore";
-    }
-    '''
-    for token in lexer(codice):
-        print(token)
