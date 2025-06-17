@@ -98,7 +98,7 @@ if __name__ == "__main__":
     codice = '''
     int a = 5;
     float b = 3;
-    if (a >= b) {
+    if (!a >= b) {
         cout << "a maggiore";
     }
     '''

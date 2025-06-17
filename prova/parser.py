@@ -188,11 +188,11 @@ class Parser:
             self.expect("RPAREN")
             return expr
         else:
-            self.error("Invalid factor")  # Espressione non valida
+            self.error("Invalid factor", tok)  # Espressione non valida
 
     def error(self, msg, tok):
         line = tok[2] if tok else '?'
-        raise SyntaxError(f"Error in line {tok}: {msg}")  # Stampa un errore di sintassi
+        raise SyntaxError(f"Error in line {line}: {msg}")  # Stampa un errore di sintassi
 
 
 # === ESEMPIO USO ===
@@ -202,7 +202,7 @@ if __name__ == "__main__":
     
     a = 5;
     float b = 3;
-    if (a > b) {
+    if (!a > b) {
         cout << "a maggiore";
     } 
     '''
