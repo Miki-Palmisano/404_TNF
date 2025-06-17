@@ -90,7 +90,7 @@ if __name__ == "__main__":
     from parser import Parser
 
     codice = '''
-    a = 5;
+    int a = 5;
     float b = 3;
     if (a > b) {
         cout << a+b;
