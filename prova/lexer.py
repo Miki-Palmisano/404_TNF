@@ -5,14 +5,7 @@ import re
 Cosa fa:
 Qui elenchi tutti i tipi di token che il lexer deve riconoscere, ciascuno associato a una regex.
 L’ordine è importante: i token con pattern più lunghi (come == o &&) vanno prima di quelli più corti (come = o &).
-
-\d cifre
-* 0 o più
-^ negazione
-[ ] insieme di tutti i caratteri indicati
-
 '''
-
 
 TOKEN_SPECIFICATION = [
     ('FLOAT',       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
@@ -30,10 +23,10 @@ TOKEN_SPECIFICATION = [
     ('MINUS',       r'-'),               # -
     ('TIMES',       r'\*'),              # *
     ('DIVIDE',      r'/'),               # /
-    ('LE',          r'<='),              # minore o uguale
-    ('GE',          r'>='),              # maggiore o uguale
     ('LT',          r'<'),               # minore
     ('GT',          r'>'),               # maggiore
+    ('LE',          r'<='),              # minore o uguale
+    ('GE',          r'>='),              # maggiore o uguale
     ('LPAREN',      r'\('),              # ( parentesi aperta
     ('RPAREN',      r'\)'),              # ) parentesi chiusa
     ('LBRACE',      r'\{'),              # { parentesi aperta

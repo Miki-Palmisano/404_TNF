@@ -61,6 +61,12 @@ class Parser:
         if self.peek() and self.peek()[0] == "ASSIGN":
             self.advance()  # Consuma il segno "="
             expr = self.expression()  # Parso l'espressione a destra
+
+            if expr[0] == "float" and type_ == "INT":
+                self.error("Cannot assign Float number to Int variable")
+            elif expr[0] == "int" and type_ == "FLOAT":
+                expr = ("float", f"{expr[1]}.0")
+
         self.expect("SEMICOLON")  # Consuma il ";"
         return ("declare", type_, name, expr)  # Nodo AST della dichiarazione
 
@@ -120,7 +126,7 @@ class Parser:
 
     def comparison(self):
         left = self.additive()
-        while self.peek() and self.peek()[0] in ("LT", "GT", "EQ"):
+        while self.peek() and self.peek()[0] in ("LT", "GT", "EQ", "LE", "GE"):
             op = self.advance()[0]
             right = self.additive()
             left = ("binop", op, left, right)
@@ -166,8 +172,10 @@ class Parser:
     def factor(self):
         # Gestisce numeri, stringhe, variabili, e parentesi
         tok = self.peek()
-        if tok[0] == "NUMBER":
-            return ("number", self.advance()[1])
+        if tok[0] == "INT":
+            return ("int", self.advance()[1])
+        elif tok[0] == "FLOAT":
+            return ("float", self.advance()[1])
         elif tok[0] == "STRING":
             return ("string", self.advance()[1])
         elif tok[0] == "ID":
@@ -189,11 +197,9 @@ if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
     int a = 5;
-    float b = 3.2;
+    float b = 3;
     if (a > b) {
         cout << "a maggiore";
-    } else{
-        cout << "b maggiore";
     }
     '''
     tokens = lexer(codice)  # Analizza il codice in token
