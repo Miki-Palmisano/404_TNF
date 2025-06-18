@@ -255,6 +255,7 @@ if __name__ == "__main__":
     if (!(a > b)) {
         cout << "a maggiore";
     } 
+    // Funzione di esempio
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser

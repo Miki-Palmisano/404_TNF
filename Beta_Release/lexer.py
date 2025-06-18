@@ -19,6 +19,7 @@ TOKEN_SPECIFICATION = [
     ('AND',         r'&&'),              # And
     ('OR',          r'\|\|'),            # Or
     ('NOT',         r'!'),               # Not
+    ('COMMENT',     r'//.*'),            # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
     ('PLUS',        r'\+'),              # +
     ('MINUS',       r'-'),               # -
     ('TIMES',       r'\*'),              # *
@@ -80,7 +81,7 @@ def lexer(code):
         val = mo.group(typ)
         if typ == 'NEWLINE':        # se trova un token NEWLINE (\n), aumenta il contatore delle righe.
             line_num += 1
-        elif typ == 'SKIP':         # se trova spazi o tab (SKIP), li ignora.
+        elif typ == 'SKIP' or typ == 'COMMENT':         # se trova spazi o tab (SKIP), li ignora.
             pass
         elif typ == 'MISMATCH':
             raise RuntimeError(f'Unexpected character {val!r} on line {line_num}') # se trova caratteri non previsti, lancia un errore (ti dice dove c’è il problema).
