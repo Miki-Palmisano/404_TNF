@@ -137,15 +137,11 @@ if __name__ == "__main__":
 
     codice = '''
     int counter = 0;
-    while (counter < 5) {
-    cout << counter;
-    counter += 1;
-
+    
+    while ( counter < 5 ) {
+        cout << counter;
+        counter += 1;
     }
-
-    
-    
-
     '''
 
     tokens = lexer(codice)
