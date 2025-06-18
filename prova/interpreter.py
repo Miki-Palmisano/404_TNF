@@ -1,7 +1,7 @@
 class Interpreter:
     def __init__(self, ast):
         self.ast = ast
-        self.env = {}  # Symbol table: variabili definite
+        self.env = {}
 
     def run(self):
         for stmt in self.ast:
@@ -9,19 +9,19 @@ class Interpreter:
 
     def execute(self, node):
         match node:
+            case ("function_def", rettype, name, params, body):
+                self.env[name] = ("function", rettype, params, body)
             case ("declare", tipo, nome, expr):
                 if nome in self.env:
                     raise RuntimeError(f"Variable '{nome}' already declared")
                 value = self.eval_expr(expr) if expr else None
                 self.env[nome] = (tipo, value)
-
             case ("assign", nome, expr):
                 if nome not in self.env:
                     raise RuntimeError(f"Variable '{nome}' not declared")
                 tipo, _ = self.env[nome]
                 value = self.eval_expr(expr)
                 self.env[nome] = (tipo, value)
-
             case ("if", cond, body, else_body):
                 cond_value = self.eval_expr(cond)
                 if cond_value:
@@ -30,28 +30,26 @@ class Interpreter:
                 else:
                     for stmt in else_body:
                         self.execute(stmt)
-
             case ("while", cond, body):
                 while self.eval_expr(cond):
                     for stmt in body:
                         self.execute(stmt)
-
             case ("cout", expr):
                 print(self.eval_expr(expr))
-
             case ("cin", var):
                 if var not in self.env:
                     raise RuntimeError(f"Variable '{var}' not declared")
                 tipo, _ = self.env[var]
                 user_input = input(f"Enter value for {var} ({tipo}): ")
-                if tipo == "INT":
+                if tipo == "TYPE_INT":
                     value = int(user_input)
-                elif tipo == "FLOAT":
+                elif tipo == "TYPE_FLOAT":
                     value = float(user_input)
-                elif tipo == "STRING":
+                elif tipo == "TYPE_STRING":
                     value = user_input
                 self.env[var] = (tipo, value)
-
+            case ("return", expr):
+                return ("return", self.eval_expr(expr))
             case _:
                 raise RuntimeError(f"Unknown statement: {node}")
 
@@ -83,8 +81,30 @@ class Interpreter:
                 raise RuntimeError(f"Unsupported operator {op}")
             case ("not", inner):
                 return not self.eval_expr(inner)
+            case ("funcall", name, args):
+                if name not in self.env or self.env[name][0] != "function":
+                    raise RuntimeError(f"Function '{name}' not defined")
+                _, rettype, params, body = self.env[name]
+                if len(params) != len(args):
+                    raise RuntimeError(f"Function '{name}' expects {len(params)} args, got {len(args)}")
+                arg_values = [self.eval_expr(arg) for arg in args]
+                saved_env = self.env.copy()
+                self.env = self.env.copy()
+                for (ptype, pname), value in zip(params, arg_values):
+                    self.env[pname] = (ptype, value)
+                ret_val = None
+                try:
+                    for stmt in body:
+                        result = self.execute(stmt)
+                        if isinstance(result, tuple) and result[0] == "return":
+                            ret_val = result[1]
+                            break
+                finally:
+                    self.env = saved_env
+                return ret_val
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
+
 
 
 if __name__ == "__main__":
@@ -92,13 +112,14 @@ if __name__ == "__main__":
     from parser import Parser
 
     codice = '''
-    int a = 5;
-    float b = 3;
-    if (a > b) {
-        cout << a+b;
-    } else {
-        cout << "Ciao belliiii";
+    
+    int somma(int a, int b) {
+    return a + b;
     }
+
+    int x = somma(2, 3);
+    cout << x;
+
     '''
 
     tokens = lexer(codice)

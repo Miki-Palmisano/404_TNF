@@ -44,7 +44,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main'
+    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main','void'
 }
 
 '''Cosa fa:
@@ -85,8 +85,18 @@ def lexer(code):
         elif typ == 'MISMATCH':
             raise RuntimeError(f'Unexpected character {val!r} on line {line_num}') # se trova caratteri non previsti, lancia un errore (ti dice dove c’è il problema).
         else:
-            if typ == 'ID' and val in KEYWORDS: # Se trova un identificatore (ID) che corrisponde a una keyword (es. "if"), lo trasforma in un token di tipo "IF"
-                typ = val.upper()       # Esempio: "if" -> "IF"
+            if typ == 'ID' and val in KEYWORDS:
+                if val == 'int':
+                    typ = 'TYPE_INT'
+                elif val == 'float':
+                    typ = 'TYPE_FLOAT'
+                elif val == 'string':
+                    typ = 'TYPE_STRING'
+                elif val == 'void':
+                    typ = 'VOID'
+                else:
+                    typ = val.upper()
+
             tokens.append((typ, val, line_num))   # aggiunge (tipo, valore) alla lista dei token trovati.
         pos = mo.end()                  # restituisce l’indice (posizione) dopo l’ultimo carattere del token trovato.
         mo = get_token(code, pos)       # Rilancia la ricerca del prossimo token a partire dalla posizione pos, cioè subito dopo il token precedente.

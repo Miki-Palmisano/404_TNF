@@ -34,12 +34,20 @@ class Parser:
 
     # ---- STATEMENTS ----
     def statement(self):
-        # Analizza quale tipo di istruzione stiamo per processare in base al prossimo token
         tok = self.peek()
         if tok is None:
             return None
-        if tok[0] in ("INT", "FLOAT", "STRING"):
-            return self.declaration()  # Dichiarazione variabile
+
+        # FUNZIONE: tipo + id + ( ==> function_definition!
+        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "VOID") \
+                and self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1][0] == "ID" \
+                and self.pos + 2 < len(self.tokens) and self.tokens[self.pos + 2][0] == "LPAREN":
+            return self.function_definition()
+
+        # VARIABILE
+        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING"):
+            return self.declaration()
+
         elif tok[0] == "ID":
             return self.assignment_or_funcall()  # Assegnazione o chiamata funzione
         elif tok[0] == "IF":
@@ -50,8 +58,16 @@ class Parser:
             return self.cout_statement()  # Stampa
         elif tok[0] == "CIN":
             return self.cin_statement()  # Input
+        elif tok[0] == "RETURN":
+            return self.return_statement()
         else:
             self.error(f"Unexpected token {tok}", tok)  # Token non atteso
+
+    def return_statement(self):
+        self.expect("RETURN")
+        expr = self.expression()
+        self.expect("SEMICOLON")
+        return ("return", expr)
 
     def declaration(self):
         # Gestisce dichiarazione variabili, es: int x = 5;
@@ -172,7 +188,6 @@ class Parser:
         return left
 
     def factor(self):
-        # Gestisce numeri, stringhe, variabili, e parentesi
         tok = self.peek()
         if tok[0] == "NOT":
             self.advance()
@@ -185,14 +200,45 @@ class Parser:
         elif tok[0] == "STRING":
             return ("string", self.advance()[1])
         elif tok[0] == "ID":
-            return ("var", self.advance()[1])
+            name = self.advance()[1]
+            # --- NOVITÀ: controlla se dopo c'è '(' ---
+            if self.peek() and self.peek()[0] == "LPAREN":
+                self.advance()  # Consuma '('
+                args = []
+                while self.peek() and self.peek()[0] != "RPAREN":
+                    args.append(self.expression())
+                    if self.peek() and self.peek()[0] == "COMMA":
+                        self.advance()  # Consuma ','
+                self.expect("RPAREN")
+                return ("funcall", name, args)
+            else:
+                return ("var", name)
         elif tok[0] == "LPAREN":
             self.advance()
             expr = self.expression()
             self.expect("RPAREN")
             return expr
         else:
-            self.error("Invalid factor", tok)  # Espressione non valida
+            self.error("Invalid factor", tok)
+
+    def function_definition(self):
+        rettype = self.advance()[0]  # tipo di ritorno (INT, FLOAT, STRING)
+        name = self.expect("ID")[1]  # nome della funzione
+        self.expect("LPAREN")  # (
+        params = []
+        while self.peek() and self.peek()[0] != "RPAREN":
+            ptype = self.advance()[0]  # tipo parametro
+            pname = self.expect("ID")[1]  # nome parametro
+            params.append((ptype, pname))
+            if self.peek() and self.peek()[0] == "COMMA":
+                self.advance()  # ,
+        self.expect("RPAREN")  # )
+        self.expect("LBRACE")  # {
+        body = []
+        while self.peek() and self.peek()[0] != "RBRACE":
+            body.append(self.statement())
+        self.expect("RBRACE")  # }
+        return ("function_def", rettype, name, params, body)
 
     def error(self, msg, tok):
         line = tok[2] if tok else '?'
