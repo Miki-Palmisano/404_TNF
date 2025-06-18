@@ -136,12 +136,11 @@ if __name__ == "__main__":
     from parser import Parser
 
     codice = '''
-    
-    int somma(int a, int b) {
-    int x = 5;
-    x = a + b;
-    cout << x;
-    somma(2, 8);
+    int counter = 0;
+    while (counter < 5) {
+    cout << counter;
+    counter += 1;
+
     }
 
     
