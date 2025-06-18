@@ -7,7 +7,7 @@ class Interpreter:
         for stmt in self.ast:
             self.execute(stmt)
 
-    def execute(self, node):
+    def execute(self, node, current_function_returntype=None):
         match node:
             case ("function_def", rettype, name, params, body):
                 self.env[name] = ("function", rettype, params, body)
@@ -15,27 +15,38 @@ class Interpreter:
                 if nome in self.env:
                     raise RuntimeError(f"Variable '{nome}' already declared")
                 value = self.eval_expr(expr) if expr else None
+                # Controllo: se expr è funcall e la funzione è void, errore!
+                if isinstance(expr, tuple) and expr[0] == "funcall":
+                    func_name = expr[1]
+                    if func_name in self.env and self.env[func_name][1] == "VOID":
+                        raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
                 self.env[nome] = (tipo, value)
             case ("assign", nome, expr):
                 if nome not in self.env:
                     raise RuntimeError(f"Variable '{nome}' not declared")
                 tipo, _ = self.env[nome]
                 value = self.eval_expr(expr)
+                if isinstance(expr, tuple) and expr[0] == "funcall":
+                    func_name = expr[1]
+                    if func_name in self.env and self.env[func_name][1] == "VOID":
+                        raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
                 self.env[nome] = (tipo, value)
             case ("if", cond, body, else_body):
                 cond_value = self.eval_expr(cond)
                 if cond_value:
                     for stmt in body:
-                        self.execute(stmt)
+                        self.execute(stmt, current_function_returntype)
                 else:
                     for stmt in else_body:
-                        self.execute(stmt)
+                        self.execute(stmt, current_function_returntype)
             case ("while", cond, body):
                 while self.eval_expr(cond):
                     for stmt in body:
-                        self.execute(stmt)
+                        self.execute(stmt, current_function_returntype)
             case ("cout", expr):
-                print(self.eval_expr(expr))
+                value = self.eval_expr(expr)
+                if value is not None:
+                    print(value)
             case ("cin", var):
                 if var not in self.env:
                     raise RuntimeError(f"Variable '{var}' not declared")
@@ -48,8 +59,15 @@ class Interpreter:
                 elif tipo == "TYPE_STRING":
                     value = user_input
                 self.env[var] = (tipo, value)
+            case ("funcall", name, args):
+                self.eval_expr(("funcall", name, args))
+
             case ("return", expr):
-                return ("return", self.eval_expr(expr))
+                # Passa il rettype corrente (lo passa funcall nell'argomento current_function_returntype)
+                if current_function_returntype == "VOID" and expr is not None:
+                    raise RuntimeError("Cannot return a value from a void function")
+                val = self.eval_expr(expr) if expr is not None else None
+                return ("return", val)
             case _:
                 raise RuntimeError(f"Unknown statement: {node}")
 
@@ -95,15 +113,21 @@ class Interpreter:
                 ret_val = None
                 try:
                     for stmt in body:
-                        result = self.execute(stmt)
+                        result = self.execute(stmt, rettype)  # Passa il rettype corrente!
                         if isinstance(result, tuple) and result[0] == "return":
                             ret_val = result[1]
                             break
                 finally:
                     self.env = saved_env
+                if rettype == "VOID":
+                    return None
+                if rettype in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
+                    raise RuntimeError(
+                        f"Function '{name}' declared as {rettype[5:].lower()} but missing return statement")
                 return ret_val
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
+
 
 
 
@@ -114,11 +138,14 @@ if __name__ == "__main__":
     codice = '''
     
     int somma(int a, int b) {
-    return a + b;
+    int x = 5;
+    x = a + b;
+    cout << x;
+    somma(2, 8);
     }
 
-    int x = somma(2, 3);
-    cout << x;
+    
+    
 
     '''
 
