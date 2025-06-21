@@ -65,7 +65,7 @@ class Parser:
 
     def return_statement(self):
         self.expect("RETURN")
-        expr = self.comparison()
+        expr = self.logic()
         self.expect("SEMICOLON")
         return ("return", expr)
 
@@ -166,7 +166,7 @@ class Parser:
         # Gestisce istruzione cout (stampa)
         self.expect("COUT")
         self.expect("LSHIFT")
-        expr = self.comparison()  # Cosa stampare
+        expr = self.logic()  # Cosa stampare
 
         if isinstance(expr, str):
             expr = ("var", expr)
@@ -179,7 +179,7 @@ class Parser:
                 self.advance() # Consuma "endl"
                 expr = ("concat", expr, ("string", "\n"))  # Aggiunge endl
             else:
-                next_expr = self.comparison()
+                next_expr = self.logic()
                 if isinstance(next_expr, str):
                     next_expr = ("var", next_expr)  # Assicura che sia un'espressione valida
                 elif isinstance(next_expr, tuple) and next_expr[0] == "STRING":
@@ -249,7 +249,7 @@ class Parser:
                 self.advance()  # Consuma '('
                 args = []
                 while self.peek() and self.peek()[0] != "RPAREN":
-                    args.append(self.comparison())
+                    args.append(self.logic())
                     if self.peek() and self.peek()[0] == "COMMA":
                         self.advance()  # Consuma ','
                 self.expect("RPAREN")
@@ -292,16 +292,14 @@ class Parser:
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
-    int a = 1;
-
-int b = 0;
-
-if ((a > 0 && b == 0)) {
-
-    cout << "ok";
-
+    bool bothPositive(int a, int b) {
+    return (a > 0 && b > 0);  // ← qui c'è l'uso corretto di &&
 }
 
+int main() {
+    std::cout << bothPositive(3, 4) << std::endl;  // stampa 1
+    return 0;
+}
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser
