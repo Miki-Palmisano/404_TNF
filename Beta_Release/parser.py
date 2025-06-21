@@ -236,15 +236,15 @@ class Parser:
         tok = self.peek()
         if tok is None:
             self.error("Unexpected end of input", tok)
-        elif tok[0] == "NOT":
+        elif tok[0] == "NOT": # Gestisce l'operatore logico NOT
             self.advance()
             expr = self.factor()
             return ("not", expr)
-        elif tok[0] in ("INT", "FLOAT", "STRING"):
+        elif tok[0] in ("INT", "FLOAT", "STRING"): # Gestisce i letterali
             return (tok[0].lower(), self.advance()[1])
-        elif tok[0] == "ID":
+        elif tok[0] == "ID": # Gestisce variabili e chiamate di funzione
             name = self.advance()[1]
-            # --- NOVITÀ: controlla se dopo c'è '(' ---
+            # Controlla se dopo c'è '('
             if self.peek() and self.peek()[0] == "LPAREN":
                 self.advance()  # Consuma '('
                 args = []
@@ -256,7 +256,7 @@ class Parser:
                 return ("funcall", name, args)
             else:
                 return ("var", name)
-        elif tok[0] == "LPAREN":
+        elif tok[0] == "LPAREN": # Gestisce le espressioni tra parentesi
             self.advance()
             expr = self.comparison()
             self.expect("RPAREN")

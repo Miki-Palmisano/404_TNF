@@ -97,7 +97,7 @@ def lexer(code):
                     typ = "BOOL"
                 else:
                     typ = val.upper()
-            elif typ == 'STRING':
+            elif typ == 'STRING': # se trova una stringa, rimuove le virgolette iniziali e finali.
                 val = val[1:-1]
 
             tokens.append((typ, val, line_num))   # aggiunge (tipo, valore) alla lista dei token trovati.
