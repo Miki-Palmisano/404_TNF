@@ -258,7 +258,7 @@ class Parser:
                 return ("var", name)
         elif tok[0] == "LPAREN": # Gestisce le espressioni tra parentesi
             self.advance()
-            expr = self.comparison()
+            expr = self.logic()
             self.expect("RPAREN")
             return expr
         else:
@@ -292,31 +292,16 @@ class Parser:
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
+    int a = 1;
 
-            int somma(int a, int b) {
-                return a + b;
-            }
+int b = 0;
 
-            int i = 0;
-            int j = 0;
-            int outer_limit = 1000;
-            int inner_limit = 1000;
-            int somma_result = somma(5, 10);
+if ((a > 0 && b == 0)) {
 
-            cout << "Value: " << somma_result << endl;
+    cout << "ok";
 
-            while (i < outer_limit) {
-                j = 0;
-                while (j < inner_limit) {
-                    if ((i + j) % 2 == 0) {
-                        cout << "Even sum: " << (i + j) << endl;
-                    } else {
-                        cout << "Odd sum: " << (i + j) << endl;
-                    }
-                    j++;
-                }
-                i++;
-            }
+}
+
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser
