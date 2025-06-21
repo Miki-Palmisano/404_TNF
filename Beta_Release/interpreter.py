@@ -122,6 +122,16 @@ class Interpreter:
             case ("binop", op, left, right):
                 l = self.eval_expr(left)
                 r = self.eval_expr(right)
+
+                # blocco per AND/OR
+                if op in ("AND", "OR"):
+                    # impedisci l'uso con stringhe
+                    if isinstance(l, str) or isinstance(r, str):
+                        raise RuntimeError("Cannot apply logical AND/OR to string operands")
+                    if op == "AND":
+                        return int(bool(l) and bool(r))  # 0 o 1
+                    else:  # "OR"
+                        return int(bool(l) or bool(r))
                 match op:
                     case "PLUS": return l + r
                     case "MINUS": return l - r
@@ -177,11 +187,9 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    bool l;
-    l = true;
-    bool r;
-    l = false;
-    bool result = l && r;
+    float l = 1;
+    int r = 0;
+    bool result = l || r;
     cout << result;
 
     '''
