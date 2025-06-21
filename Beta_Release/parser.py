@@ -45,7 +45,7 @@ class Parser:
             return self.function_definition()
 
         # VARIABILE
-        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING"):
+        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING","TYPE_BOOL"):
             return self.declaration()
 
         elif tok[0] == "ID":
@@ -220,7 +220,7 @@ class Parser:
         while self.peek() and self.peek()[0] in ("AND", "OR"):
             op = self.advance()[0]
             right = self.comparison()
-            left = (op, left, right)
+            left = ("binop",op, left, right)
         return left
 
     def term(self):
@@ -242,6 +242,9 @@ class Parser:
             return ("not", expr)
         elif tok[0] in ("INT", "FLOAT", "STRING"): # Gestisce i letterali
             return (tok[0].lower(), self.advance()[1])
+        elif tok[0] == "BOOL":
+            self.advance()
+            return ("bool", tok[1])
         elif tok[0] == "ID": # Gestisce variabili e chiamate di funzione
             name = self.advance()[1]
             # Controlla se dopo c'è '('

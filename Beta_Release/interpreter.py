@@ -77,7 +77,6 @@ class Interpreter:
                     self.env[var] = ("TYPE_FLOAT", float(value))
                 elif tipo == "TYPE_STRING":
                     self.env[var] = ("TYPE_STRING", value.strip('"'))
-                self.env[var] = (tipo, value)
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -129,8 +128,8 @@ class Interpreter:
                     case "TIMES": return l * r
                     case "DIVIDE": return l / r
                     case "MODULE": return l % r
-                    case "AND": return l and r
-                    case "OR": return l or r
+                    case "AND": return bool(l) and bool(r)
+                    case "OR": return bool(l) or bool(r)
                     case "NEQ": return l != r
                     case "EQ": return l == r
                     case "LT": return l < r
@@ -178,30 +177,13 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int somma(int a, int b) {
-        return a + b;
-    }
-    
-    int i = 0;
-    int j = 0;
-    int outer_limit = 10;
-    int inner_limit = 10;
-    int somma_result = somma(5, 10);
-    
-    cout << "Value: " << somma_result << endl;
-    
-    while (i < outer_limit) {
-        j = 0;
-        while (j < inner_limit) {
-            if ((i + j) % 2 == 0) {
-                cout << "Even sum: " << (i + j) << endl;
-            } else {
-                cout << "Odd sum: " << (i + j) << endl;
-            }
-            j++;
-        }
-        i++;
-    }
+    bool l;
+    l = true;
+    bool r;
+    l = false;
+    bool result = l && r;
+    cout << result;
+
     '''
 
     tokens = lexer(codice)
