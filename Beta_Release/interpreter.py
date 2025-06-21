@@ -9,8 +9,9 @@ class Interpreter:
 
     def execute(self, node, current_function_returntype=None):
         match node:
-            case ("function_def", rettype, name, params, body):
-                self.env[name] = ("function", rettype, params, body)
+            case ("function_def", return_type, name, params, body):
+                self.env[name] = ("function", return_type, params, body)
+
             case ("declare", tipo, nome, expr):
                 if nome in self.env:
                     raise RuntimeError(f"Variable '{nome}' already declared")
@@ -21,6 +22,7 @@ class Interpreter:
                     if func_name in self.env and self.env[func_name][1] == "VOID":
                         raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
                 self.env[nome] = (tipo, value)
+
             case ("assign", nome, expr):
                 if nome not in self.env:
                     raise RuntimeError(f"Variable '{nome}' not declared")
@@ -31,6 +33,7 @@ class Interpreter:
                     if func_name in self.env and self.env[func_name][1] == "VOID":
                         raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
                 self.env[nome] = (tipo, value)
+
             case ("if", cond, body, else_body):
                 cond_value = self.eval_expr(cond)
                 if cond_value:
@@ -39,26 +42,43 @@ class Interpreter:
                 else:
                     for stmt in else_body:
                         self.execute(stmt, current_function_returntype)
+
             case ("while", cond, body):
                 while self.eval_expr(cond):
                     for stmt in body:
                         self.execute(stmt, current_function_returntype)
+
+            case ("increment", var):
+                if var not in self.env:
+                    raise RuntimeError(f"Error in line {node[2]} :Variable '{var}' not declared")
+                type_, value = self.env[var]
+                self.env[var] = (type_, value + 1 if type_ == "TYPE_INT" else value + 1.0)
+
+            case ("decrement", var):
+                if var not in self.env:
+                    raise RuntimeError(f"Error in line {node[2]} :Variable '{var}' not declared")
+                type_, value = self.env[var]
+                self.env[var] = (type_, value - 1 if type_ == "TYPE_INT" else value - 1.0)
+
             case ("cout", expr):
-                value = self.eval_expr(expr)
-                if value is not None:
-                    print(value)
+                output = self.eval_expr(expr)
+                if output is not None:
+                    print(output, end="")
+
             case ("cin", var):
                 if var not in self.env:
                     raise RuntimeError(f"Variable '{var}' not declared")
-                tipo, _ = self.env[var]
-                user_input = input(f"Enter value for {var} ({tipo}): ")
+                value = input()
+                tipo = self.env[var][0]
+
                 if tipo == "TYPE_INT":
-                    value = int(user_input)
+                    self.env[var] = ("TYPE_INT", int(value))
                 elif tipo == "TYPE_FLOAT":
-                    value = float(user_input)
+                    self.env[var] = ("TYPE_FLOAT", float(value))
                 elif tipo == "TYPE_STRING":
-                    value = user_input
+                    self.env[var] = ("TYPE_STRING", value.strip('"'))
                 self.env[var] = (tipo, value)
+
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
 
@@ -68,6 +88,7 @@ class Interpreter:
                     raise RuntimeError("Cannot return a value from a void function")
                 val = self.eval_expr(expr) if expr is not None else None
                 return ("return", val)
+
             case _:
                 raise RuntimeError(f"Unknown statement: {node}")
 
@@ -75,14 +96,30 @@ class Interpreter:
         match expr:
             case ("int", val):
                 return int(val)
+
             case ("float", val):
                 return float(val)
+
             case ("string", val):
-                return val.strip('"')
+                return val
+
             case ("var", name):
                 if name not in self.env:
                     raise RuntimeError(f"Variable '{name}' not declared")
                 return self.env[name][1]
+
+            case ("concat", expr, next_expr):
+                return str(self.eval_expr(expr)) + str(self.eval_expr(next_expr))
+
+            case ('not', inner):
+                return not self.eval_expr(inner)
+
+            case ('minus', inner):
+                return -self.eval_expr(inner)
+
+            case ('bool', value):
+                return value.lower() == 'true'
+
             case ("binop", op, left, right):
                 l = self.eval_expr(left)
                 r = self.eval_expr(right)
@@ -91,18 +128,21 @@ class Interpreter:
                     case "MINUS": return l - r
                     case "TIMES": return l * r
                     case "DIVIDE": return l / r
+                    case "MODULE": return l % r
+                    case "AND": return l and r
+                    case "OR": return l or r
+                    case "NEQ": return l != r
                     case "EQ": return l == r
                     case "LT": return l < r
                     case "GT": return l > r
                     case "LE": return l <= r
                     case "GE": return l >= r
-                raise RuntimeError(f"Unsupported operator {op}")
-            case ("not", inner):
-                return not self.eval_expr(inner)
+                raise RuntimeError(f"Unsupported operator {op} in expression {expr}")
+
             case ("funcall", name, args):
                 if name not in self.env or self.env[name][0] != "function":
                     raise RuntimeError(f"Function '{name}' not defined")
-                _, rettype, params, body = self.env[name]
+                _, return_type, params, body = self.env[name]
                 if len(params) != len(args):
                     raise RuntimeError(f"Function '{name}' expects {len(params)} args, got {len(args)}")
                 arg_values = [self.eval_expr(arg) for arg in args]
@@ -113,18 +153,19 @@ class Interpreter:
                 ret_val = None
                 try:
                     for stmt in body:
-                        result = self.execute(stmt, rettype)  # Passa il rettype corrente!
+                        result = self.execute(stmt, return_type)  # Passa il rettype corrente!
                         if isinstance(result, tuple) and result[0] == "return":
                             ret_val = result[1]
                             break
                 finally:
                     self.env = saved_env
-                if rettype == "VOID":
+                if return_type == "VOID":
                     return None
-                if rettype in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
+                if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
                     raise RuntimeError(
-                        f"Function '{name}' declared as {rettype[5:].lower()} but missing return statement")
+                        f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
                 return ret_val
+
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
 
@@ -134,19 +175,39 @@ class Interpreter:
 if __name__ == "__main__":
     from lexer import lexer
     from parser import Parser
+    from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int counter = 0;
+    int somma(int a, int b) {
+        return a + b;
+    }
     
-    while ( counter < 5 ) {
-        cout << counter;
-        counter += 1;
+    int i = 0;
+    int j = 0;
+    int outer_limit = 10;
+    int inner_limit = 10;
+    int somma_result = somma(5, 10);
+    
+    cout << "Value: " << somma_result << endl;
+    
+    while (i < outer_limit) {
+        j = 0;
+        while (j < inner_limit) {
+            if ((i + j) % 2 == 0) {
+                cout << "Even sum: " << (i + j) << endl;
+            } else {
+                cout << "Odd sum: " << (i + j) << endl;
+            }
+            j++;
+        }
+        i++;
     }
     '''
 
     tokens = lexer(codice)
     parser = Parser(tokens)
     ast = parser.parse()
+    sem_analyzer = SemanticAnalyzer(ast).analyze()
 
     print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)

@@ -65,7 +65,7 @@ class Parser:
 
     def return_statement(self):
         self.expect("RETURN")
-        expr = self.expression()
+        expr = self.comparison()
         self.expect("SEMICOLON")
         return ("return", expr)
 
@@ -75,14 +75,10 @@ class Parser:
         name = self.expect("ID")[1]  # Prende il nome della variabile
         expr = None  # Espressione di inizializzazione (opzionale)
         tok = self.peek()
+
         if tok and tok[0] == "ASSIGN":
             self.advance()  # Consuma il segno "="
-            expr = self.expression()  # Parso l'espressione a destra
-
-            if expr[0] == "float" and type_ == "INT":
-                self.error(f"Cannot assign Float number to Int variable", tok)
-            elif expr[0] == "int" and type_ == "FLOAT":
-                expr = ("float", f"{expr[1]}.0")
+            expr = self.logic()  # Parso l'espressione a destra
 
         self.expect("SEMICOLON")  # Consuma il ";"
         return ("declare", type_, name, expr)  # Nodo AST della dichiarazione
@@ -93,19 +89,27 @@ class Parser:
         tok = self.peek()
         if tok and tok[0] == "ASSIGN":
             self.advance()  # Consuma "="
-            expr = self.expression()  # Valuta la parte destra dell'assegnazione
+            expr = self.logic()  # Valuta la parte destra dell'assegnazione
             self.expect("SEMICOLON")  # Consuma ";"
             return ("assign", name, expr)
         elif self.peek() and self.peek()[0] == "LPAREN":
             self.advance()  # Consuma "("
             args = []
             while self.peek() and self.peek()[0] != "RPAREN":
-                args.append(self.expression())  # Ogni argomento
+                args.append(self.logic())  # Ogni argomento
                 if self.peek() and self.peek()[0] == "COMMA":
                     self.advance()  # Consuma ","
             self.expect("RPAREN")  # Consuma ")"
             self.expect("SEMICOLON")  # Consuma ";"
             return ("funcall", name, args)
+        elif tok and tok[0] == "INCREMENT":
+            self.advance()
+            self.expect("SEMICOLON")
+            return ("increment", name)
+        elif tok and tok[0] == "DECREMENT":
+            self.advance()
+            self.expect("SEMICOLON")
+            return ("decrement", name)
         else:
             self.error("Invalid statement after identifier", tok)
 
@@ -113,29 +117,37 @@ class Parser:
         # Gestisce istruzione if...else...
         self.expect("IF")  # Consuma "if"
         self.expect("LPAREN")  # Consuma "("
-        cond = self.expression()  # Condizione dell'if
+        cond = self.logic()  # Condizione dell'if
         self.expect("RPAREN")  # Consuma ")"
         self.expect("LBRACE")  # Consuma "{"
+
         body = []
         while self.peek() and self.peek()[0] != "RBRACE":
             body.append(self.statement())  # Corpo del blocco if
         self.expect("RBRACE")  # Consuma "}"
+
         else_body = []
         if self.peek() and self.peek()[0] == "ELSE":
             self.advance()  # Consuma "else"
-            self.expect("LBRACE")  # Consuma "{"
-            while self.peek() and self.peek()[0] != "RBRACE":
-                else_body.append(self.statement())  # Corpo del blocco else
-            self.expect("RBRACE")  # Consuma "}"
+            if self.peek() and self.peek()[0] == "IF":
+                else_body.append(self.if_statement())
+            else:
+                self.expect("LBRACE")
+                while self.peek() and self.peek()[0] != "RBRACE":
+                    stmt = self.statement()
+                    if stmt:
+                        else_body.append(stmt)
+                self.expect("RBRACE")
         return ("if", cond, body, else_body)
 
     def while_statement(self):
         # Gestisce istruzione while
         self.expect("WHILE")
         self.expect("LPAREN")
-        cond = self.expression()  # Condizione del ciclo
+        cond = self.logic()  # Condizione del ciclo
         self.expect("RPAREN")
         self.expect("LBRACE")
+
         body = []
         while self.peek() and self.peek()[0] != "RBRACE":
             body.append(self.statement())  # Corpo del ciclo
@@ -144,7 +156,7 @@ class Parser:
 
     def comparison(self):
         left = self.additive()
-        while self.peek() and self.peek()[0] in ("LT", "GT", "EQ", "LE", "GE"):
+        while self.peek() and self.peek()[0] in ("LT", "GT", "EQ", "LE", "GE", "NEQ"):
             op = self.advance()[0]
             right = self.additive()
             left = ("binop", op, left, right)
@@ -154,8 +166,31 @@ class Parser:
         # Gestisce istruzione cout (stampa)
         self.expect("COUT")
         self.expect("LSHIFT")
-        expr = self.expression()  # Cosa stampare
-        self.expect("SEMICOLON")
+        expr = self.comparison()  # Cosa stampare
+
+        if isinstance(expr, str):
+            expr = ("var", expr)
+        if isinstance(expr, tuple) and expr[0] == "STRING":
+            expr = ("string", expr[1])
+
+        while self.peek() and self.peek()[0] == "LSHIFT":
+            self.advance() # Consuma "<<"
+            if self.peek()[0] == "ENDL":
+                self.advance() # Consuma "endl"
+                expr = ("concat", expr, ("string", "\n"))  # Aggiunge endl
+            else:
+                next_expr = self.comparison()
+                if isinstance(next_expr, str):
+                    next_expr = ("var", next_expr)  # Assicura che sia un'espressione valida
+                elif isinstance(next_expr, tuple) and next_expr[0] == "STRING":
+                    next_expr = ("string", next_expr[1])  # Assicura che sia una stringa
+
+                expr = ("concat", expr, next_expr)  # Concatenazione delle espressioni
+
+        if self.peek() and self.peek()[0] == "SEMICOLON":
+            self.advance()
+        else:
+            self.error("Expected semicolon after cout statement", self.peek())
         return ("cout", expr)
 
     def cin_statement(self):
@@ -163,7 +198,12 @@ class Parser:
         self.expect("CIN")
         self.expect("RSHIFT")
         var = self.expect("ID")[1]  # Variabile in cui salvare input
-        self.expect("SEMICOLON")
+
+        if self.peek() and self.peek()[0] == "SEMICOLON":
+            self.advance()
+        else:
+            self.error("Expected semicolon after cin statement", self.peek())
+
         return ("cin", var)
 
     # ---- EXPRESSIONS ----
@@ -175,13 +215,18 @@ class Parser:
             left = ("binop", op, left, right)
         return left
 
-    def expression(self):
-        return self.comparison()
+    def logic(self):
+        left = self.comparison()
+        while self.peek() and self.peek()[0] in ("AND", "OR"):
+            op = self.advance()[0]
+            right = self.comparison()
+            left = (op, left, right)
+        return left
 
     def term(self):
         # Gestisce espressioni con * e / (precedenza più alta)
         left = self.factor()
-        while self.peek() and self.peek()[0] in ("TIMES", "DIVIDE"):
+        while self.peek() and self.peek()[0] in ("TIMES", "DIVIDE", "MODULE"):
             op = self.advance()[0]
             right = self.factor()
             left = ("binop", op, left, right)
@@ -189,16 +234,14 @@ class Parser:
 
     def factor(self):
         tok = self.peek()
-        if tok[0] == "NOT":
+        if tok is None:
+            self.error("Unexpected end of input", tok)
+        elif tok[0] == "NOT":
             self.advance()
             expr = self.factor()
             return ("not", expr)
-        elif tok[0] == "INT":
-            return ("int", self.advance()[1])
-        elif tok[0] == "FLOAT":
-            return ("float", self.advance()[1])
-        elif tok[0] == "STRING":
-            return ("string", self.advance()[1])
+        elif tok[0] in ("INT", "FLOAT", "STRING"):
+            return (tok[0].lower(), self.advance()[1])
         elif tok[0] == "ID":
             name = self.advance()[1]
             # --- NOVITÀ: controlla se dopo c'è '(' ---
@@ -206,7 +249,7 @@ class Parser:
                 self.advance()  # Consuma '('
                 args = []
                 while self.peek() and self.peek()[0] != "RPAREN":
-                    args.append(self.expression())
+                    args.append(self.comparison())
                     if self.peek() and self.peek()[0] == "COMMA":
                         self.advance()  # Consuma ','
                 self.expect("RPAREN")
@@ -215,14 +258,14 @@ class Parser:
                 return ("var", name)
         elif tok[0] == "LPAREN":
             self.advance()
-            expr = self.expression()
+            expr = self.comparison()
             self.expect("RPAREN")
             return expr
         else:
-            self.error("Invalid factor", tok)
+            self.error(f"Unexpected token {tok}", tok)
 
     def function_definition(self):
-        rettype = self.advance()[0]  # tipo di ritorno (INT, FLOAT, STRING)
+        return_type = self.advance()[0]  # tipo di ritorno (INT, FLOAT, STRING)
         name = self.expect("ID")[1]  # nome della funzione
         self.expect("LPAREN")  # (
         params = []
@@ -238,7 +281,7 @@ class Parser:
         while self.peek() and self.peek()[0] != "RBRACE":
             body.append(self.statement())
         self.expect("RBRACE")  # }
-        return ("function_def", rettype, name, params, body)
+        return ("function_def", return_type, name, params, body)
 
     def error(self, msg, tok):
         line = tok[2] if tok else '?'
@@ -248,14 +291,32 @@ class Parser:
 # === ESEMPIO USO ===
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
-    codice = ''' 
-    
-    a = 5;
-    float b = 3;
-    if (!(a > b)) {
-        cout << "a maggiore";
-    } 
-    // Funzione di esempio
+    codice = '''
+
+            int somma(int a, int b) {
+                return a + b;
+            }
+
+            int i = 0;
+            int j = 0;
+            int outer_limit = 1000;
+            int inner_limit = 1000;
+            int somma_result = somma(5, 10);
+
+            cout << "Value: " << somma_result << endl;
+
+            while (i < outer_limit) {
+                j = 0;
+                while (j < inner_limit) {
+                    if ((i + j) % 2 == 0) {
+                        cout << "Even sum: " << (i + j) << endl;
+                    } else {
+                        cout << "Odd sum: " << (i + j) << endl;
+                    }
+                    j++;
+                }
+                i++;
+            }
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser

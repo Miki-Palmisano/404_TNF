@@ -11,19 +11,24 @@ TOKEN_SPECIFICATION = [
     ('FLOAT',       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
     ('INT',         r'\d+'),             # int number -> \d+ una o più cifre
     ('STRING',      r'"[^"\n]*"'),       # Stringa delimitata da due virgolette -> [^"\n] che non siano virgolette o a capo, * che sia 0 o più, " " che siano delimitate da virgolette
+    ('BOOL',        r'\b(true|false)\b'),# Boolean -> true o false, \b indica che deve essere una parola intera (non parte di un'altra parola)
     ('ID',          r'[a-zA-Z_]\w*'),    # Identificatore -> qualsiasi sequenza di caratteri che cominci con una lettera (maiuscola o minuscola) o con il carattere _, \w* seguito anche da lettere o numeri
     ('LSHIFT',      r'<<'),              # << indirizzamento
     ('RSHIFT',      r'>>'),              # >> indirizzamento
+    ('NEQ',         r'!='),              # Not equal -> diverso
     ('EQ',          r'=='),              # Equal
     ('ASSIGN',      r'='),               # Assegnazione
     ('AND',         r'&&'),              # And
     ('OR',          r'\|\|'),            # Or
     ('NOT',         r'!'),               # Not
     ('COMMENT',     r'//.*'),            # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
+    ('INCREMENT',   r'\+\+'),            # Incremento -> ++
+    ('DECREMENT',   r'--'),              # Decremento -> --
     ('PLUS',        r'\+'),              # +
     ('MINUS',       r'-'),               # -
     ('TIMES',       r'\*'),              # *
     ('DIVIDE',      r'/'),               # /
+    ('MODULE',      r'%'),               # %
     ('LE',          r'<='),              # minore o uguale
     ('GE',          r'>='),              # maggiore o uguale
     ('LT',          r'<'),               # minore
@@ -45,7 +50,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main','void'
+    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main','void', 'bool', 'endl'
 }
 
 '''Cosa fa:
@@ -73,12 +78,11 @@ get_token = re.compile(token_regex).match  # Compila la regex in un oggetto "reg
 
 def lexer(code):
     line_num = 1            # tiene traccia del numero di riga (utile per errori).
-    pos = 0                 # è la posizione corrente nel testo.
     tokens = []             # è la lista dove salverai i token trovati.
-    mo = get_token(code)    # cerca il prossimo token a partire dalla posizione pos.
-    while mo is not None:   # Entra in un ciclo che continua finché trova token (mo è il match object).
-        typ = mo.lastgroup
-        val = mo.group(typ)
+    tok = get_token(code)    # cerca il prossimo token a partire dalla posizione pos.
+    while tok is not None:   # Entra in un ciclo che continua finché trova token (mo è il match object).
+        typ = tok.lastgroup
+        val = tok.group(typ)
         if typ == 'NEWLINE':        # se trova un token NEWLINE (\n), aumenta il contatore delle righe.
             line_num += 1
         elif typ == 'SKIP' or typ == 'COMMENT':         # se trova spazi o tab (SKIP), li ignora.
@@ -87,28 +91,27 @@ def lexer(code):
             raise RuntimeError(f'Unexpected character {val!r} on line {line_num}') # se trova caratteri non previsti, lancia un errore (ti dice dove c’è il problema).
         else:
             if typ == 'ID' and val in KEYWORDS:
-                if val == 'int':
-                    typ = 'TYPE_INT'
-                elif val == 'float':
-                    typ = 'TYPE_FLOAT'
-                elif val == 'string':
-                    typ = 'TYPE_STRING'
-                elif val == 'void':
-                    typ = 'VOID'
+                if val in ('int', 'float', 'string', 'bool'):
+                    typ = "TYPE_"+val.upper()
+                elif val in ('true', 'false'):
+                    typ = "BOOL"
                 else:
                     typ = val.upper()
+            elif typ == 'STRING':
+                val = val[1:-1]
 
             tokens.append((typ, val, line_num))   # aggiunge (tipo, valore) alla lista dei token trovati.
-        pos = mo.end()                  # restituisce l’indice (posizione) dopo l’ultimo carattere del token trovato.
-        mo = get_token(code, pos)       # Rilancia la ricerca del prossimo token a partire dalla posizione pos, cioè subito dopo il token precedente.
+        pos = tok.end()                  # restituisce l’indice (posizione) dopo l’ultimo carattere del token trovato.
+        tok = get_token(code, pos)       # Rilancia la ricerca del prossimo token a partire dalla posizione pos, cioè subito dopo il token precedente.
     return tokens
 
-# === ESEMPIO USO ===
+
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
     int a = 5;
     float b = 3;
+    bool c = true;
     if (!a >= b) {
         cout << "a maggiore";
     }
