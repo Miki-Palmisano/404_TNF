@@ -187,10 +187,16 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    float l = 1;
-    int r = 0;
-    bool result = l || r;
-    cout << result;
+    
+    int main() {
+        int a;
+        int b;
+        a = 5;
+        b = 10;
+        cout << "La somma di a e b è: " << (a + b) << endl;
+        
+        return 0;
+    }
 
     '''
 
@@ -201,4 +207,15 @@ if __name__ == "__main__":
 
     print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)
+
+    for stmt in ast:
+        if isinstance(stmt, tuple) and stmt[0] == "function_def":
+            interpreter.execute(stmt)
+
+    if "main" not in interpreter.env:
+        raise RuntimeError("No main function defined in the code")
+    else:
+        interpreter.eval_expr(("funcall", "main", []))  # Esegui la funzione main
+
+
     interpreter.run()
