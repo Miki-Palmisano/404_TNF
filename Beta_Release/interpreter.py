@@ -228,8 +228,7 @@ if __name__ == "__main__":
     int x = 10;  // variabile globale
 
     void f() {
-        int x = 5;  // variabile locale con lo stesso nome
-        cout << x << endl;  // stampa 5
+        cout << x++ << endl;  // stampa 5
     }
     
     int main() {
