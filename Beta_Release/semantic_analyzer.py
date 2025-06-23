@@ -147,6 +147,8 @@ class SemanticAnalyzer:
                     if (ltype == 'TYPE_INT' and rtype == 'TYPE_FLOAT') or \
                             (ltype == 'TYPE_FLOAT' and rtype == 'TYPE_INT'):
                         return 'TYPE_FLOAT'
+                    if ltype == 'TYPE_STRING' or rtype == 'TYPE_STRING' and op == 'PLUS':
+                        return 'TYPE_STRING'
                     else:
                         raise TypeError(f"Arithmetic operation of incompatible type: {ltype}, {rtype}")
                 if op in ('EQ', 'NEQ', 'LT', 'GT', 'LE', 'GE'):

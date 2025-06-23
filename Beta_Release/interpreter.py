@@ -233,15 +233,14 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Funzioni ricorsive: fattoriale
-    int fattoriale(int n) {
-        if (n <= 1) {return 1;}
-        else {return n * fattoriale(n - 1);}
+    // Test bool e return implicito
+    bool maggioreDiCinque(int n) {
+        return n > 5;
     }
     
     int main() {
-        int x = 5;
-        cout << "Fattoriale di " << x << " = " << fattoriale(x) << endl;
+        cout << maggioreDiCinque(3) << endl; // 0
+        cout << maggioreDiCinque(8) << endl; // 1
         return 0;
     }
     '''
