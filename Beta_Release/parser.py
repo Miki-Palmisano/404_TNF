@@ -206,11 +206,22 @@ class Parser:
         return left
 
     def logic(self):
+        return self.or_expr()
+
+    def or_expr(self):
+        left = self.and_expr()
+        while self.peek() and self.peek()[0] == "OR":
+            self.advance()
+            right = self.and_expr()
+            left = ("binop", "OR", left, right)
+        return left
+
+    def and_expr(self):
         left = self.comparison()
-        while self.peek() and self.peek()[0] in ("AND", "OR"):
-            op = self.advance()[0]
+        while self.peek() and self.peek()[0] == "AND":
+            self.advance()
             right = self.comparison()
-            left = ("binop",op, left, right)
+            left = ("binop", "AND", left, right)
         return left
 
     def term(self):
