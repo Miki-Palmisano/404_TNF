@@ -168,11 +168,6 @@ class Parser:
         self.expect("LSHIFT")
         expr = self.logic()  # Cosa stampare
 
-        if isinstance(expr, str):
-            expr = ("var", expr)
-        if isinstance(expr, tuple) and expr[0] == "STRING":
-            expr = ("string", expr[1])
-
         while self.peek() and self.peek()[0] == "LSHIFT":
             self.advance() # Consuma "<<"
             if self.peek()[0] == "ENDL":
@@ -180,11 +175,6 @@ class Parser:
                 expr = ("concat", expr, ("string", "\n"))  # Aggiunge endl
             else:
                 next_expr = self.logic()
-                if isinstance(next_expr, str):
-                    next_expr = ("var", next_expr)  # Assicura che sia un'espressione valida
-                elif isinstance(next_expr, tuple) and next_expr[0] == "STRING":
-                    next_expr = ("string", next_expr[1])  # Assicura che sia una stringa
-
                 expr = ("concat", expr, next_expr)  # Concatenazione delle espressioni
 
         if self.peek() and self.peek()[0] == "SEMICOLON":
@@ -243,8 +233,7 @@ class Parser:
         elif tok[0] in ("INT", "FLOAT", "STRING"): # Gestisce i letterali
             return (tok[0].lower(), self.advance()[1])
         elif tok[0] == "BOOL":
-            self.advance()
-            return ("bool", tok[1])
+            return ("bool", self.advance()[1])
         elif tok[0] == "ID": # Gestisce variabili e chiamate di funzione
             name = self.advance()[1]
             # Controlla se dopo c'è '('
@@ -259,6 +248,11 @@ class Parser:
                 return ("funcall", name, args)
             else:
                 return ("var", name)
+        elif tok[0] == "MINUS":
+            self.advance()
+            expr = self.factor()
+            return ("minus", expr)
+
         elif tok[0] == "LPAREN": # Gestisce le espressioni tra parentesi
             self.advance()
             expr = self.logic()
