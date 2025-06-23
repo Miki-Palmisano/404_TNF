@@ -85,7 +85,7 @@ class Interpreter:
                 try:
                     value = int(value) if type_ == "TYPE_INT" else float(value) if type_ == "TYPE_FLOAT" else value
                 except ValueError:
-                    raise RuntimeError(f"Cannot convert input '{value}' to {type_}")
+                    raise RuntimeError(f"Cannot assign '{value}' to {type_} variable")
                 if type_ == "TYPE_INT":
                     self.assign(var, (type_, int(value)))
                 elif type_ == "TYPE_FLOAT":
@@ -151,6 +151,9 @@ class Interpreter:
 
             case ("concat", expr, next_expr):
                 return str(self.eval_expr(expr)) + str(self.eval_expr(next_expr))
+
+            case ('pre_increment') | ('post_increment') | ('pre_decrement') | ('post_decrement') as op, name:
+                return self.execute((op, name))
 
             case ('not', inner): return not self.eval_expr(inner)
 
@@ -229,12 +232,13 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Test input (cin) e output (cout)
+    // Test incremento/decremento
     int main() {
-        int n;
-        cout << "Inserisci un numero: ";
-        cin >> n;
-        cout << "Hai inserito: " << n << endl;
+        int a = 10;
+        cout << a++ << endl; // 10
+        cout << ++a << endl; // 12
+        cout << a-- << endl; // 12
+        cout << --a << endl; // 10
         return 0;
     }
     '''
