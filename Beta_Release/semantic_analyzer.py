@@ -73,8 +73,12 @@ class SemanticAnalyzer:
                 for ptype, pname in params:
                     self.declare_variable(pname, ptype)
 
+                prev_return_type = getattr(self, 'current_function_return_type', None)
+                self.current_function_return_type = return_type
+
                 for stmt in body:
                     self.visit(stmt)
+                self.current_function_return_type = prev_return_type
                 self.stack_symbol_table.pop()  # Elimina la tabella dei simboli del corpo della funzione
 
             case ('funcall', name, args): # Verifica la chiamata a una funzione
@@ -82,7 +86,13 @@ class SemanticAnalyzer:
                 self.expr_type(node)
 
             case ('return', expr): # Verifica il tipo di ritorno di una funzione
-                self.expr_type(expr)
+                return_type = getattr(self, 'current_function_return_type', None)
+                if return_type == "VOID" and expr is not None:
+                    raise TypeError("Cannot return a value from a void function")
+                if return_type != "VOID":
+                    expr_type = self.expr_type(expr)
+                    if not self.type_compatible(return_type, expr_type):
+                        raise TypeError(f"Type incompatibility in return: expected {return_type}, got {expr_type}")
 
             case ('pre_increment', name) | ('pre_decrement', name) \
                     | ('post_increment', name) | ('post_decrement', name): # Verifica l'incremento/decremento di una variabile
@@ -143,7 +153,8 @@ class SemanticAnalyzer:
                 if op in ('PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MODULE'):
                     if ltype == rtype and ltype in ('TYPE_INT', 'TYPE_FLOAT'):
                         return ltype
-                    # Allow int and float to mix for arithmetic operations, result is float
+                    if ltype == 'TYPE_STRING' or rtype == 'TYPE_STRING' and op == 'PLUS':
+                        return 'TYPE_STRING'
                     if (ltype == 'TYPE_INT' and rtype == 'TYPE_FLOAT') or \
                             (ltype == 'TYPE_FLOAT' and rtype == 'TYPE_INT'):
                         return 'TYPE_FLOAT'

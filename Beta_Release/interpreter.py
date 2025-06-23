@@ -56,23 +56,26 @@ class Interpreter:
                 self.assign(name, (type_, value))
 
             case ("if", cond, body, else_body):
-                if self.eval_expr(cond):
-                    self.env_stack.append({})
-                    for stmt in body:
-                        self.execute(stmt, current_function_returntype)
-                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if
-                else:
-                    self.env_stack.append({})
-                    for stmt in else_body:
-                        self.execute(stmt, current_function_returntype)
-                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if/else
+                self.env_stack.append({})  # Aggiunge un nuovo ambiente locale per l'if
+                try:
+                    branch = body if self.eval_expr(cond) else else_body
+                    for stmt in branch:
+                        result = self.execute(stmt, current_function_returntype)
+                        if isinstance(result, tuple) and result[0] == "return":
+                            return result
+                finally:
+                    self.env_stack.pop()  # Rimuove l'ambiente locale dopo l'esecuzione dell'if/else
 
             case ("while", cond, body):
                 while self.eval_expr(cond):
                     self.env_stack.append({})
-                    for stmt in body:
-                        self.execute(stmt, current_function_returntype)
-                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
+                    try:
+                        for stmt in body:
+                            result = self.execute(stmt, current_function_returntype)
+                            if isinstance(result, tuple) and result[0] == "return":
+                                return result
+                    finally:
+                        self.env_stack.pop()  # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
 
             case ("cout", expr):
                 output = self.eval_expr(expr)
@@ -101,6 +104,21 @@ class Interpreter:
                 if current_function_returntype == "VOID" and expr is not None:
                     raise RuntimeError("Cannot return a value from a void function")
                 val = self.eval_expr(expr) if expr is not None else None
+
+                if current_function_returntype in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL"):
+
+                    type_map = {
+                        int: "TYPE_INT",
+                        float: "TYPE_FLOAT",
+                        str: "TYPE_STRING",
+                        bool: "TYPE_BOOL"
+                    }
+                    val_type = type_map.get(type(val))
+
+                    if not (val_type == current_function_returntype or
+                            (current_function_returntype == "TYPE_FLOAT" and val_type == "TYPE_INT")):
+                        raise RuntimeError(
+                            f"Return type mismatch: expected {current_function_returntype[5:].lower()}, got {val_type[5:].lower() if val_type else type(val).__name__}")
                 return ("return", val)
 
             case ("pre_increment", var):
@@ -204,21 +222,20 @@ class Interpreter:
                     new_env[pname] = (ptype, value)
 
                 self.env_stack.append(new_env)
-                ret_val = None
 
-                for stmt in body:
-                    result = self.execute(stmt, return_type)
-                    if isinstance(result, tuple) and result[0] == "return":
-                        ret_val = result[1]
-                        break
-                self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione della funzione
+                try:
+                    for stmt in body:
+                        result = self.execute(stmt, return_type)
+                        if isinstance(result, tuple) and result[0] == "return":
+                            return result[1]
+                finally:
+                    self.env_stack.pop()  # Rimuove l'ambiente locale dopo l'esecuzione della funzione
 
                 if return_type == "VOID":
                     return None
-                if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
+                if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL"):
                     raise RuntimeError(
                         f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
-                return ret_val
 
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
@@ -232,13 +249,17 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Test incremento/decremento
+    string dividi(float a, float b) {
+        if (b == 0.0) {
+            cout << "Errore: divisione per zero" << endl;
+            return "Ciao";
+        }
+        return "Ciao";
+    }
+    
     int main() {
-        int a = 10;
-        cout << a++ << endl; // 10
-        cout << ++a << endl; // 12
-        cout << a-- << endl; // 12
-        cout << --a << endl; // 10
+        float x = 10.2;
+        cout << "Testo: " << dividi(x, 0.0) << endl;
         return 0;
     }
     '''
