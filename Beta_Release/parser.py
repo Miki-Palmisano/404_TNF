@@ -272,6 +272,7 @@ class Parser:
         else:
             self.error(f"Unexpected token {tok}", tok)
 
+
     def function_definition(self):
         return_type = self.advance()[0]  # tipo di ritorno (INT, FLOAT, STRING)
         name = self.expect("ID")[1]  # nome della funzione

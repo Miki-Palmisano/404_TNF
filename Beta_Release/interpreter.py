@@ -187,6 +187,7 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
+    
     int main() {
         int a;
         int b;

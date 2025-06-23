@@ -3,6 +3,7 @@ class SemanticAnalyzer:
         self.ast = ast
         self.symbol_table = {}
 
+
     def analyze(self):
         for stmt in self.ast:
             self.visit(stmt, self.symbol_table)

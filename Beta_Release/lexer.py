@@ -52,6 +52,7 @@ KEYWORDS = {
     'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout','void', 'bool', 'endl','true','false'
 }
 
+
 '''Cosa fa:
 Costruisce un’unica grande regex, che unisce tutte le regex dei token, assegnando a ciascuna un nome (usando la sintassi (?P<NOME>PATTERN)).
 get_token è una funzione che cerca il primo token nella stringa in una data posizione.
