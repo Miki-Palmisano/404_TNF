@@ -233,14 +233,20 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Test bool e return implicito
-    bool maggioreDiCinque(int n) {
-        return n > 5;
+    // Test funzioni booleane e condizioni annidate
+    bool pari(int n) {
+        return n % 2 == 0;
     }
     
     int main() {
-        cout << maggioreDiCinque(3) << endl; // 0
-        cout << maggioreDiCinque(8) << endl; // 1
+        int x = 7;
+        if (pari(x)) {
+            cout << "Pari" << endl;
+        } else if (x > 0) {
+            cout << "Dispari positivo" << endl;
+        } else {
+            cout << "Dispari negativo o zero" << endl;
+        }
         return 0;
     }
     '''
