@@ -215,6 +215,3 @@ if __name__ == "__main__":
         raise RuntimeError("No main function defined in the code")
     else:
         interpreter.eval_expr(("funcall", "main", []))  # Esegui la funzione main
-
-
-    interpreter.run()
