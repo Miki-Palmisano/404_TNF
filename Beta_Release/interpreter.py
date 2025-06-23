@@ -187,7 +187,6 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    
     int main() {
         int a;
         int b;
@@ -197,7 +196,6 @@ if __name__ == "__main__":
         
         return 0;
     }
-
     '''
 
     tokens = lexer(codice)
