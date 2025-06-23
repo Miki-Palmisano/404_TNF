@@ -18,6 +18,8 @@ class Interpreter:
         # Assegna alla variabile nel primo scope dove esiste
         for env in reversed(self.env_stack):
             if name in env:
+                if value[0] != env[name][0]:
+                    raise RuntimeError(f"Type mismatch in assignment to '{name}': {env[name][0]} vs {value[0]}")
                 env[name] = value
                 return
         raise RuntimeError(f"Variable '{name}' not declared")
@@ -79,14 +81,17 @@ class Interpreter:
 
             case ("cin", var):
                 value = input()
-                type_ = self.lookup(var)
-
+                type_ = self.lookup(var)[0]
+                try:
+                    value = int(value) if type_ == "TYPE_INT" else float(value) if type_ == "TYPE_FLOAT" else value
+                except ValueError:
+                    raise RuntimeError(f"Cannot convert input '{value}' to {type_}")
                 if type_ == "TYPE_INT":
-                    self.assign(var, ("TYPE_INT", int(value)))
+                    self.assign(var, (type_, int(value)))
                 elif type_ == "TYPE_FLOAT":
-                    self.assign(var, ("TYPE_FLOAT", int(value)))
+                    self.assign(var, (type_, float(value)))
                 elif type_ == "TYPE_STRING":
-                    self.assign(var, ("TYPE_STRING", int(value)))
+                    self.assign(var, (type_, value))
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -224,14 +229,12 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Test bool, operatori logici e confronto
-    bool entrambiPositivi(int a, int b) {
-        return a > 0 && b > 0;
-    }
-    
+    // Test input (cin) e output (cout)
     int main() {
-        cout << entrambiPositivi(3, 4) << endl;   // stampa 1
-        cout << entrambiPositivi(-1, 2) << endl;  // stampa 0
+        int n;
+        cout << "Inserisci un numero: ";
+        cin >> n;
+        cout << "Hai inserito: " << n << endl;
         return 0;
     }
     '''
