@@ -56,23 +56,26 @@ class Interpreter:
                 self.assign(name, (type_, value))
 
             case ("if", cond, body, else_body):
-                if self.eval_expr(cond):
-                    self.env_stack.append({})
-                    for stmt in body:
-                        self.execute(stmt, current_function_returntype)
-                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if
-                else:
-                    self.env_stack.append({})
-                    for stmt in else_body:
-                        self.execute(stmt, current_function_returntype)
+                self.env_stack.append({})  # Aggiunge un nuovo ambiente locale per l'if
+                try:
+                    branch = body if self.eval_expr(cond) else else_body
+                    for stmt in branch:
+                        result = self.execute(stmt, current_function_returntype)
+                        if isinstance(result, tuple) and result[0] == "return":
+                            return result
+                finally:
                     self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if/else
 
             case ("while", cond, body):
                 while self.eval_expr(cond):
                     self.env_stack.append({})
-                    for stmt in body:
-                        self.execute(stmt, current_function_returntype)
-                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
+                    try:
+                        for stmt in body:
+                            result = self.execute(stmt, current_function_returntype)
+                            if isinstance(result, tuple) and result[0] == "return":
+                                return result
+                    finally:
+                        self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
 
             case ("cout", expr):
                 output = self.eval_expr(expr)
@@ -94,7 +97,7 @@ class Interpreter:
                     self.assign(var, (type_, value))
 
             case ("funcall", name, args):
-                self.eval_expr(("funcall", name, args))
+                self.eval_expr(("funcall", name, args, current_function_returntype))
 
             case ("return", expr):
                 # Passa il rettype corrente (lo passa funcall nell'argomento current_function_returntype)
@@ -204,21 +207,19 @@ class Interpreter:
                     new_env[pname] = (ptype, value)
 
                 self.env_stack.append(new_env)
-                ret_val = None
 
-                for stmt in body:
-                    result = self.execute(stmt, return_type)
-                    if isinstance(result, tuple) and result[0] == "return":
-                        ret_val = result[1]
-                        break
-                self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione della funzione
+                try:
+                    for stmt in body:
+                        result = self.execute(stmt, return_type)
+                        if isinstance(result, tuple) and result[0] == "return":
+                            return result[1]
+                finally:
+                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione della funzione
 
                 if return_type == "VOID":
                     return None
-                if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
-                    raise RuntimeError(
-                        f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
-                return ret_val
+                if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL"):
+                    raise RuntimeError(f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
 
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
@@ -232,13 +233,15 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    // Test incremento/decremento
+    // Funzioni ricorsive: fattoriale
+    int fattoriale(int n) {
+        if (n <= 1) {return 1;}
+        else {return n * fattoriale(n - 1);}
+    }
+    
     int main() {
-        int a = 10;
-        cout << a++ << endl; // 10
-        cout << ++a << endl; // 12
-        cout << a-- << endl; // 12
-        cout << --a << endl; // 10
+        int x = 5;
+        cout << "Fattoriale di " << x << " = " << fattoriale(x) << endl;
         return 0;
     }
     '''
