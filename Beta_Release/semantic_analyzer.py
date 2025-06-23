@@ -84,6 +84,12 @@ class SemanticAnalyzer:
             case ('return', expr): # Verifica il tipo di ritorno di una funzione
                 self.expr_type(expr)
 
+            case ('pre_increment', name) | ('pre_decrement', name) \
+                    | ('post_increment', name) | ('post_decrement', name): # Verifica l'incremento/decremento di una variabile
+                var_type = self.lookup_variable(name)
+                if var_type not in ('TYPE_INT', 'TYPE_FLOAT'):
+                    raise TypeError(f"Increment/decrement not valid for type '{var_type}'")
+
             case _:
                 raise ValueError(f"Unknown node type: {node}")
 

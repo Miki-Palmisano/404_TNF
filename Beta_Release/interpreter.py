@@ -72,7 +72,6 @@ class Interpreter:
                         self.execute(stmt, current_function_returntype)
                     self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
 
-
             case ("cout", expr):
                 output = self.eval_expr(expr)
                 if output is not None:
@@ -98,6 +97,38 @@ class Interpreter:
                     raise RuntimeError("Cannot return a value from a void function")
                 val = self.eval_expr(expr) if expr is not None else None
                 return ("return", val)
+
+            case ("pre_increment", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot increment variable '{var}' of type {type_}")
+                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
+                self.assign(var, (type_, new_value))
+                return new_value  # Restituisce il nuovo valore dopo l'incremento
+
+            case ("pre_decrement", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot decrement variable '{var}' of type {type_}")
+                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
+                self.assign(var, (type_, new_value))
+                return new_value  # Restituisce il nuovo valore dopo il decremento
+
+            case ("post_increment", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot increment variable of type '{type_}'")
+                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
+                self.assign(var, (type_, new_value))
+                return value  # Restituisce il valore prima dell'incremento
+
+            case ("post_decrement", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot decrement variable of type '{type_}'")
+                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
+                self.assign(var, (type_, new_value))
+                return value  # Restituisce il valore prima del decremento
 
             case _:
                 raise RuntimeError(f"Unknown statement: {node}")
@@ -181,38 +212,6 @@ class Interpreter:
                         f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
                 return ret_val
 
-            case ("pre_increment", var):
-                type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot increment variable '{var}' of type {type_}")
-                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
-                self.assign(var, (type_, new_value))
-                return new_value  # Restituisce il nuovo valore dopo l'incremento
-
-            case ("pre_decrement", var):
-                type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot decrement variable '{var}' of type {type_}")
-                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
-                self.assign(var, (type_, new_value))
-                return new_value  # Restituisce il nuovo valore dopo il decremento
-
-            case ("post_increment", var):
-                type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot increment variable of type '{type_}'")
-                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
-                self.assign(var, (type_, new_value))
-                return value  # Restituisce il valore prima dell'incremento
-
-            case ("post_decrement", var):
-                type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot decrement variable of type '{type_}'")
-                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
-                self.assign(var, (type_, new_value))
-                return value  # Restituisce il valore prima del decremento
-
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
 
@@ -225,21 +224,16 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int x = 10;  // variabile globale
-
-    void f() {
-        cout << x++ << endl;  // stampa 5
-    }
-    
     int main() {
-        f();
-        cout << x << endl;  // stampa 10 (non 5!)
-        
-        if(x > 0) {
-            int d = 12;  // variabile locale all'interno dell'if
-            cout << "x è positivo, d = " << d << endl;  // stampa 12
+        int i = 0;
+        while (i < 5) {
+            if (i % 2 == 0) {
+                cout << "Pari: " << i << endl;
+            } else {
+                cout << "Dispari: " << i << endl;
+            }
+            i++;
         }
-        
         return 0;
     }
     '''
