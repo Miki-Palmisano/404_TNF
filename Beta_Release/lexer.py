@@ -11,7 +11,6 @@ TOKEN_SPECIFICATION = [
     ('FLOAT',       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
     ('INT',         r'\d+'),             # int number -> \d+ una o più cifre
     ('STRING',      r'"[^"\n]*"'),       # Stringa delimitata da due virgolette -> [^"\n] che non siano virgolette o a capo, * che sia 0 o più, " " che siano delimitate da virgolette
-    ('BOOL',        r'\b(true|false)\b'),# Boolean -> true o false, \b indica che deve essere una parola intera (non parte di un'altra parola)
     ('ID',          r'[a-zA-Z_]\w*'),    # Identificatore -> qualsiasi sequenza di caratteri che cominci con una lettera (maiuscola o minuscola) o con il carattere _, \w* seguito anche da lettere o numeri
     ('LSHIFT',      r'<<'),              # << indirizzamento
     ('RSHIFT',      r'>>'),              # >> indirizzamento
@@ -21,7 +20,7 @@ TOKEN_SPECIFICATION = [
     ('AND',         r'&&'),              # And
     ('OR',          r'\|\|'),            # Or
     ('NOT',         r'!'),               # Not
-    ('COMMENT',     r'//.*'),            # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
+    ('COMMENT',     r'//[^\n]*'),        # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
     ('INCREMENT',   r'\+\+'),            # Incremento -> ++
     ('DECREMENT',   r'--'),              # Decremento -> --
     ('PLUS',        r'\+'),              # +
@@ -50,8 +49,9 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout', 'main','void', 'bool', 'endl'
+    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout','void', 'bool', 'endl','true','false'
 }
+
 
 '''Cosa fa:
 Costruisce un’unica grande regex, che unisce tutte le regex dei token, assegnando a ciascuna un nome (usando la sintassi (?P<NOME>PATTERN)).

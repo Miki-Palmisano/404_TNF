@@ -77,7 +77,6 @@ class Interpreter:
                     self.env[var] = ("TYPE_FLOAT", float(value))
                 elif tipo == "TYPE_STRING":
                     self.env[var] = ("TYPE_STRING", value.strip('"'))
-                self.env[var] = (tipo, value)
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -123,14 +122,24 @@ class Interpreter:
             case ("binop", op, left, right):
                 l = self.eval_expr(left)
                 r = self.eval_expr(right)
+
+                # blocco per AND/OR
+                if op in ("AND", "OR"):
+                    # impedisci l'uso con stringhe
+                    if isinstance(l, str) or isinstance(r, str):
+                        raise RuntimeError("Cannot apply logical AND/OR to string operands")
+                    if op == "AND":
+                        return int(bool(l) and bool(r))  # 0 o 1
+                    else:  # "OR"
+                        return int(bool(l) or bool(r))
                 match op:
                     case "PLUS": return l + r
                     case "MINUS": return l - r
                     case "TIMES": return l * r
                     case "DIVIDE": return l / r
                     case "MODULE": return l % r
-                    case "AND": return l and r
-                    case "OR": return l or r
+                    case "AND": return bool(l) and bool(r)
+                    case "OR": return bool(l) or bool(r)
                     case "NEQ": return l != r
                     case "EQ": return l == r
                     case "LT": return l < r
@@ -178,29 +187,15 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int somma(int a, int b) {
-        return a + b;
-    }
     
-    int i = 0;
-    int j = 0;
-    int outer_limit = 10;
-    int inner_limit = 10;
-    int somma_result = somma(5, 10);
-    
-    cout << "Value: " << somma_result << endl;
-    
-    while (i < outer_limit) {
-        j = 0;
-        while (j < inner_limit) {
-            if ((i + j) % 2 == 0) {
-                cout << "Even sum: " << (i + j) << endl;
-            } else {
-                cout << "Odd sum: " << (i + j) << endl;
-            }
-            j++;
-        }
-        i++;
+    int main() {
+        int a;
+        int b;
+        a = 5;
+        b = 10;
+        cout << "La somma di a e b è: " << (a + b) << endl;
+        
+        return 0;
     }
     '''
 
@@ -211,4 +206,15 @@ if __name__ == "__main__":
 
     print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)
+
+    for stmt in ast:
+        if isinstance(stmt, tuple) and stmt[0] == "function_def":
+            interpreter.execute(stmt)
+
+    if "main" not in interpreter.env:
+        raise RuntimeError("No main function defined in the code")
+    else:
+        interpreter.eval_expr(("funcall", "main", []))  # Esegui la funzione main
+
+
     interpreter.run()

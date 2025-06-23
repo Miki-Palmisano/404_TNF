@@ -3,6 +3,7 @@ class SemanticAnalyzer:
         self.ast = ast
         self.symbol_table = {}
 
+
     def analyze(self):
         for stmt in self.ast:
             self.visit(stmt, self.symbol_table)
@@ -135,11 +136,17 @@ class SemanticAnalyzer:
                         return 'TYPE_BOOL'
                     else:
                         raise TypeError(f"Incompatible types for comparison: {ltype}, {rtype}")
+                # dentro expr_type, nel ramo ("binop", op, left, right)
                 if op in ('AND', 'OR'):
-                    if ltype == rtype == 'TYPE_BOOL':
-                        return 'TYPE_BOOL'
+                    # tipi ammessi
+                    allowed = ('TYPE_BOOL', 'TYPE_INT', 'TYPE_FLOAT')
+                    if ltype in allowed and rtype in allowed:
+                        return 'TYPE_BOOL'  # la semantica è booleana
                     else:
-                        raise TypeError(f"Logical operator between non-boolean types: {ltype}, {rtype}")
+                        raise TypeError(
+                            f"Logical operator between unsupported types: {ltype}, {rtype}"
+                        )
+
                 raise TypeError(f"Unknown operator: {op}")
 
             case ('concat', left, right): # Verifica la concatenazione di stringhe

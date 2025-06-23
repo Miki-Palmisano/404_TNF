@@ -45,7 +45,7 @@ class Parser:
             return self.function_definition()
 
         # VARIABILE
-        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING"):
+        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING","TYPE_BOOL"):
             return self.declaration()
 
         elif tok[0] == "ID":
@@ -65,7 +65,7 @@ class Parser:
 
     def return_statement(self):
         self.expect("RETURN")
-        expr = self.comparison()
+        expr = self.logic()
         self.expect("SEMICOLON")
         return ("return", expr)
 
@@ -166,12 +166,7 @@ class Parser:
         # Gestisce istruzione cout (stampa)
         self.expect("COUT")
         self.expect("LSHIFT")
-        expr = self.comparison()  # Cosa stampare
-
-        if isinstance(expr, str):
-            expr = ("var", expr)
-        if isinstance(expr, tuple) and expr[0] == "STRING":
-            expr = ("string", expr[1])
+        expr = self.logic()  # Cosa stampare
 
         while self.peek() and self.peek()[0] == "LSHIFT":
             self.advance() # Consuma "<<"
@@ -179,12 +174,7 @@ class Parser:
                 self.advance() # Consuma "endl"
                 expr = ("concat", expr, ("string", "\n"))  # Aggiunge endl
             else:
-                next_expr = self.comparison()
-                if isinstance(next_expr, str):
-                    next_expr = ("var", next_expr)  # Assicura che sia un'espressione valida
-                elif isinstance(next_expr, tuple) and next_expr[0] == "STRING":
-                    next_expr = ("string", next_expr[1])  # Assicura che sia una stringa
-
+                next_expr = self.logic()
                 expr = ("concat", expr, next_expr)  # Concatenazione delle espressioni
 
         if self.peek() and self.peek()[0] == "SEMICOLON":
@@ -216,11 +206,22 @@ class Parser:
         return left
 
     def logic(self):
+        return self.or_expr()
+
+    def or_expr(self):
+        left = self.and_expr()
+        while self.peek() and self.peek()[0] == "OR":
+            self.advance()
+            right = self.and_expr()
+            left = ("binop", "OR", left, right)
+        return left
+
+    def and_expr(self):
         left = self.comparison()
-        while self.peek() and self.peek()[0] in ("AND", "OR"):
-            op = self.advance()[0]
+        while self.peek() and self.peek()[0] == "AND":
+            self.advance()
             right = self.comparison()
-            left = (op, left, right)
+            left = ("binop", "AND", left, right)
         return left
 
     def term(self):
@@ -242,6 +243,8 @@ class Parser:
             return ("not", expr)
         elif tok[0] in ("INT", "FLOAT", "STRING"): # Gestisce i letterali
             return (tok[0].lower(), self.advance()[1])
+        elif tok[0] == "BOOL":
+            return ("bool", self.advance()[1])
         elif tok[0] == "ID": # Gestisce variabili e chiamate di funzione
             name = self.advance()[1]
             # Controlla se dopo c'è '('
@@ -249,20 +252,26 @@ class Parser:
                 self.advance()  # Consuma '('
                 args = []
                 while self.peek() and self.peek()[0] != "RPAREN":
-                    args.append(self.comparison())
+                    args.append(self.logic())
                     if self.peek() and self.peek()[0] == "COMMA":
                         self.advance()  # Consuma ','
                 self.expect("RPAREN")
                 return ("funcall", name, args)
             else:
                 return ("var", name)
+        elif tok[0] == "MINUS":
+            self.advance()
+            expr = self.factor()
+            return ("minus", expr)
+
         elif tok[0] == "LPAREN": # Gestisce le espressioni tra parentesi
             self.advance()
-            expr = self.comparison()
+            expr = self.logic()
             self.expect("RPAREN")
             return expr
         else:
             self.error(f"Unexpected token {tok}", tok)
+
 
     def function_definition(self):
         return_type = self.advance()[0]  # tipo di ritorno (INT, FLOAT, STRING)
@@ -292,31 +301,14 @@ class Parser:
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
+    bool bothPositive(int a, int b) {
+    return (a > 0 && b > 0);  // ← qui c'è l'uso corretto di &&
+}
 
-            int somma(int a, int b) {
-                return a + b;
-            }
-
-            int i = 0;
-            int j = 0;
-            int outer_limit = 1000;
-            int inner_limit = 1000;
-            int somma_result = somma(5, 10);
-
-            cout << "Value: " << somma_result << endl;
-
-            while (i < outer_limit) {
-                j = 0;
-                while (j < inner_limit) {
-                    if ((i + j) % 2 == 0) {
-                        cout << "Even sum: " << (i + j) << endl;
-                    } else {
-                        cout << "Odd sum: " << (i + j) << endl;
-                    }
-                    j++;
-                }
-                i++;
-            }
+int main() {
+    std::cout << bothPositive(3, 4) << std::endl;  // stampa 1
+    return 0;
+}
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser
