@@ -39,7 +39,7 @@ class parser:
             return None
 
         # FUNZIONE: tipo + id + ( ==> function_definition!
-        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "VOID") \
+        if tok[0] in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL", "VOID") \
                 and self.pos + 1 < len(self.tokens) and self.tokens[self.pos + 1][0] == "ID" \
                 and self.pos + 2 < len(self.tokens) and self.tokens[self.pos + 2][0] == "LPAREN":
             return self.function_definition()

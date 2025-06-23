@@ -224,16 +224,14 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
+    // Test bool, operatori logici e confronto
+    bool entrambiPositivi(int a, int b) {
+        return a > 0 && b > 0;
+    }
+    
     int main() {
-        int i = 0;
-        while (i < 5) {
-            if (i % 2 == 0) {
-                cout << "Pari: " << i << endl;
-            } else {
-                cout << "Dispari: " << i << endl;
-            }
-            i++;
-        }
+        cout << entrambiPositivi(3, 4) << endl;   // stampa 1
+        cout << entrambiPositivi(-1, 2) << endl;  // stampa 0
         return 0;
     }
     '''
