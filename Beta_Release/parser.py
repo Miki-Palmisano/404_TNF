@@ -92,6 +92,7 @@ class parser:
             expr = self.logic()  # Valuta la parte destra dell'assegnazione
             self.expect("SEMICOLON")  # Consuma ";"
             return ("assign", name, expr)
+
         elif self.peek() and self.peek()[0] == "LPAREN":
             self.advance()  # Consuma "("
             args = []
@@ -102,14 +103,22 @@ class parser:
             self.expect("RPAREN")  # Consuma ")"
             self.expect("SEMICOLON")  # Consuma ";"
             return ("funcall", name, args)
+
         elif tok and tok[0] == "INCREMENT":
             self.advance()
-            self.expect("SEMICOLON")
-            return ("increment", name)
+            if self.peek() and self.peek()[0] == "SEMICOLON":
+                self.advance()
+                return ("post_increment", name)
+            else:
+                return ("pre_increment", name)
+
         elif tok and tok[0] == "DECREMENT":
             self.advance()
-            self.expect("SEMICOLON")
-            return ("decrement", name)
+            if self.peek() and self.peek()[0] == "SEMICOLON":
+                self.advance()
+                return ("post_decrement", name)
+            else:
+                return ("pre_decrement", name)
         else:
             self.error("Invalid statement after identifier", tok)
 
@@ -237,17 +246,38 @@ class parser:
         tok = self.peek()
         if tok is None:
             self.error("Unexpected end of input", tok)
+
         elif tok[0] == "NOT": # Gestisce l'operatore logico NOT
             self.advance()
             expr = self.factor()
             return ("not", expr)
+
         elif tok[0] in ("INT", "FLOAT", "STRING"): # Gestisce i letterali
             return (tok[0].lower(), self.advance()[1])
+
         elif tok[0] == "BOOL":
             return ("bool", self.advance()[1])
+
+        elif tok[0] == "INCREMENT": # Gestisce l'incremento prefisso
+            self.advance()
+            var_tok = self.expect("ID")
+            return ("pre_increment", var_tok[1])
+
+        elif tok[0] == "DECREMENT": # Gestisce il decremento prefisso
+            self.advance()
+            var_tok = self.expect("ID")
+            return ("pre_decrement", var_tok[1])
+
         elif tok[0] == "ID": # Gestisce variabili e chiamate di funzione
             name = self.advance()[1]
-            # Controlla se dopo c'è '('
+            # Controlla se è un incremento o decremento postfisso
+            if self.peek() and self.peek()[0] == "INCREMENT":
+                self.advance()
+                return ("post_increment", name)
+            elif self.peek() and self.peek()[0] == "DECREMENT":
+                self.advance()
+                return ("post_decrement", name)
+            # Funzione o variabile
             if self.peek() and self.peek()[0] == "LPAREN":
                 self.advance()  # Consuma '('
                 args = []
@@ -259,6 +289,7 @@ class parser:
                 return ("funcall", name, args)
             else:
                 return ("var", name)
+
         elif tok[0] == "MINUS":
             self.advance()
             expr = self.factor()

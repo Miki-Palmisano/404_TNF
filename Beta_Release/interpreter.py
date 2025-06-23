@@ -1,64 +1,77 @@
 class Interpreter:
     def __init__(self, ast):
         self.ast = ast
-        self.env = {}
+        self.env_stack = [{}]
 
     def run(self):
         for stmt in self.ast:
             self.execute(stmt)
 
+    def lookup(self, name):
+        # Cerca dallo scope locale a quello globale
+        for env in reversed(self.env_stack):
+            if name in env:
+                return env[name]
+        raise RuntimeError(f"Variable '{name}' not declared")
+
+    def assign(self, name, value):
+        # Assegna alla variabile nel primo scope dove esiste
+        for env in reversed(self.env_stack):
+            if name in env:
+                env[name] = value
+                return
+        raise RuntimeError(f"Variable '{name}' not declared")
+
+    def declare(self, name, tipo, value):
+        env = self.env_stack[-1] # Prende l'ambiente corrente (l'ultimo della pila, funziona poiché l'ultimo è quello locale cancellato dopo l'esecuzione)
+        if name in env:
+            raise RuntimeError(f"Variable '{name}' already declared")
+        env[name] = (tipo, value)
+
     def execute(self, node, current_function_returntype=None):
         match node:
             case ("function_def", return_type, name, params, body):
-                self.env[name] = ("function", return_type, params, body)
+                self.env_stack[0][name] = ("function", return_type, params, body)
 
-            case ("declare", tipo, nome, expr):
-                if nome in self.env:
-                    raise RuntimeError(f"Variable '{nome}' already declared")
+            case ("declare", tipo, name, expr):
                 value = self.eval_expr(expr) if expr else None
                 # Controllo: se expr è funcall e la funzione è void, errore!
                 if isinstance(expr, tuple) and expr[0] == "funcall":
                     func_name = expr[1]
-                    if func_name in self.env and self.env[func_name][1] == "VOID":
+                    func = self.lookup(func_name)
+                    if func[1] == "VOID":
                         raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
-                self.env[nome] = (tipo, value)
+                self.declare(name, tipo, value)
 
-            case ("assign", nome, expr):
-                if nome not in self.env:
-                    raise RuntimeError(f"Variable '{nome}' not declared")
-                tipo, _ = self.env[nome]
+            case ("assign", name, expr):
                 value = self.eval_expr(expr)
                 if isinstance(expr, tuple) and expr[0] == "funcall":
                     func_name = expr[1]
-                    if func_name in self.env and self.env[func_name][1] == "VOID":
+                    func = self.lookup(func_name)
+                    if func[1] == "VOID":
                         raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
-                self.env[nome] = (tipo, value)
+                type_, _ = self.lookup(name)
+                self.assign(name, (type_, value))
 
             case ("if", cond, body, else_body):
-                cond_value = self.eval_expr(cond)
-                if cond_value:
+                if self.eval_expr(cond):
+                    self.env_stack.append({})
                     for stmt in body:
                         self.execute(stmt, current_function_returntype)
+                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if
                 else:
+                    self.env_stack.append({})
                     for stmt in else_body:
                         self.execute(stmt, current_function_returntype)
+                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione dell'if/else
 
             case ("while", cond, body):
                 while self.eval_expr(cond):
+                    self.env_stack.append({})
                     for stmt in body:
                         self.execute(stmt, current_function_returntype)
+                    self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione del ciclo
 
-            case ("increment", var):
-                if var not in self.env:
-                    raise RuntimeError(f"Error in line {node[2]} :Variable '{var}' not declared")
-                type_, value = self.env[var]
-                self.env[var] = (type_, value + 1 if type_ == "TYPE_INT" else value + 1.0)
-
-            case ("decrement", var):
-                if var not in self.env:
-                    raise RuntimeError(f"Error in line {node[2]} :Variable '{var}' not declared")
-                type_, value = self.env[var]
-                self.env[var] = (type_, value - 1 if type_ == "TYPE_INT" else value - 1.0)
 
             case ("cout", expr):
                 output = self.eval_expr(expr)
@@ -66,17 +79,15 @@ class Interpreter:
                     print(output, end="")
 
             case ("cin", var):
-                if var not in self.env:
-                    raise RuntimeError(f"Variable '{var}' not declared")
                 value = input()
-                tipo = self.env[var][0]
+                type_ = self.lookup(var)
 
-                if tipo == "TYPE_INT":
-                    self.env[var] = ("TYPE_INT", int(value))
-                elif tipo == "TYPE_FLOAT":
-                    self.env[var] = ("TYPE_FLOAT", float(value))
-                elif tipo == "TYPE_STRING":
-                    self.env[var] = ("TYPE_STRING", value.strip('"'))
+                if type_ == "TYPE_INT":
+                    self.assign(var, ("TYPE_INT", int(value)))
+                elif type_ == "TYPE_FLOAT":
+                    self.assign(var, ("TYPE_FLOAT", int(value)))
+                elif type_ == "TYPE_STRING":
+                    self.assign(var, ("TYPE_STRING", int(value)))
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -93,33 +104,25 @@ class Interpreter:
 
     def eval_expr(self, expr):
         match expr:
-            case ("int", val):
-                return int(val)
+            case ("int", val): return int(val)
 
-            case ("float", val):
-                return float(val)
+            case ("float", val): return float(val)
 
-            case ("string", val):
-                return val
+            case ("string", val): return val
 
             case ("var", name):
-                if name not in self.env:
-                    raise RuntimeError(f"Variable '{name}' not declared")
-                return self.env[name][1]
+                return self.lookup(name)[1]
 
             case ("concat", expr, next_expr):
                 return str(self.eval_expr(expr)) + str(self.eval_expr(next_expr))
 
-            case ('not', inner):
-                return not self.eval_expr(inner)
+            case ('not', inner): return not self.eval_expr(inner)
 
-            case ('minus', inner):
-                return -self.eval_expr(inner)
+            case ('minus', inner): return -self.eval_expr(inner)
 
-            case ('bool', value):
-                return value.lower() == 'true'
+            case ('bool', value): return value.lower() == 'true'
 
-            case ("binop", op, left, right):
+            case ('binop', op, left, right):
                 l = self.eval_expr(left)
                 r = self.eval_expr(right)
 
@@ -149,39 +152,66 @@ class Interpreter:
                 raise RuntimeError(f"Unsupported operator {op} in expression {expr}")
 
             case ("funcall", name, args):
-                if name not in self.env or self.env[name][0] != "function":
-                    raise RuntimeError(f"Function '{name}' not defined")
-                _, return_type, params, body = self.env[name]
+                func = self.lookup(name)
+                if func[0] != "function":
+                    raise RuntimeError(f"'{name}' is not a function")
+                _, return_type, params, body = func
                 if len(params) != len(args):
                     raise RuntimeError(f"Function '{name}' expects {len(params)} args, got {len(args)}")
                 arg_values = [self.eval_expr(arg) for arg in args]
 
-                local_vars = {}
+                new_env = {}
                 for (ptype, pname), value in zip(params, arg_values):
-                    # Salva il vecchio valore se esiste
-                    if pname in self.env:
-                        local_vars[pname] = self.env[pname]
-                    self.env[pname] = (ptype, value)
+                    new_env[pname] = (ptype, value)
+
+                self.env_stack.append(new_env)
                 ret_val = None
-                try:
-                    for stmt in body:
-                        result = self.execute(stmt, return_type)
-                        if isinstance(result, tuple) and result[0] == "return":
-                            ret_val = result[1]
-                            break
-                finally:
-                    # Ripristina solo le variabili locali
-                    for pname in [pname for _, pname in params]:
-                        if pname in local_vars:
-                            self.env[pname] = local_vars[pname]
-                        else:
-                            del self.env[pname]
+
+                for stmt in body:
+                    result = self.execute(stmt, return_type)
+                    if isinstance(result, tuple) and result[0] == "return":
+                        ret_val = result[1]
+                        break
+                self.env_stack.pop() # Rimuove l'ambiente locale dopo l'esecuzione della funzione
+
                 if return_type == "VOID":
                     return None
                 if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
                     raise RuntimeError(
                         f"Function '{name}' declared as {return_type[5:].lower()} but missing return statement")
                 return ret_val
+
+            case ("pre_increment", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot increment variable '{var}' of type {type_}")
+                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
+                self.assign(var, (type_, new_value))
+                return new_value  # Restituisce il nuovo valore dopo l'incremento
+
+            case ("pre_decrement", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot decrement variable '{var}' of type {type_}")
+                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
+                self.assign(var, (type_, new_value))
+                return new_value  # Restituisce il nuovo valore dopo il decremento
+
+            case ("post_increment", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot increment variable of type '{type_}'")
+                new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
+                self.assign(var, (type_, new_value))
+                return value  # Restituisce il valore prima dell'incremento
+
+            case ("post_decrement", var):
+                type_, value = self.lookup(var)
+                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
+                    raise RuntimeError(f"Cannot decrement variable of type '{type_}'")
+                new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
+                self.assign(var, (type_, new_value))
+                return value  # Restituisce il valore prima del decremento
 
             case _:
                 raise RuntimeError(f"Invalid expression: {expr}")
@@ -195,16 +225,21 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    
-    int c;
-    
-    void somma(int a, int b) {
-        c = a+b;
+    int x = 10;  // variabile globale
+
+    void f() {
+        int x = 5;  // variabile locale con lo stesso nome
+        cout << x << endl;  // stampa 5
     }
     
     int main() {
-        somma(5, 3);
-        cout << "La somma è: " << c << endl;
+        f();
+        cout << x << endl;  // stampa 10 (non 5!)
+        
+        if(x > 0) {
+            int d = 12;  // variabile locale all'interno dell'if
+            cout << "x è positivo, d = " << d << endl;  // stampa 12
+        }
         
         return 0;
     }
@@ -222,7 +257,7 @@ if __name__ == "__main__":
         if isinstance(stmt, tuple) and stmt[0] in ("function_def", "declare", "assign"):
             interpreter.execute(stmt)
 
-    if "main" not in interpreter.env:
+    if "main" not in interpreter.env_stack[0]:
         raise RuntimeError("No main function defined in the code")
     else:
         interpreter.eval_expr(("funcall", "main", []))  # Esegui la funzione main

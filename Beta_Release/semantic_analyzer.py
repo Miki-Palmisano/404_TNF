@@ -41,12 +41,14 @@ class SemanticAnalyzer:
                     raise TypeError(f"While condition must be a boolean, got {cond_type}")
                 for stmt in body:
                     self.visit(stmt, table)
+
             case ('increment', name) | ('decrement', name): # Verifica l'incremento/decremento di una variabile
                 if name not in table:
                     raise ValueError(f"Variable '{name}' not declared")
                 var_type = table[name]
                 if var_type not in ('TYPE_INT', 'TYPE_FLOAT'):
                     raise TypeError(f"Increment/decrement not valid for type '{var_type}'")
+
             case ('cout', expr): # Verifica l'output di cout
                 self.expr_type(expr, table)  # Just ensure the expression can be evaluated
             case ('cin', name): # Verifica l'input di cin
@@ -59,7 +61,7 @@ class SemanticAnalyzer:
                 table[name] = ('function', return_type, params)
 
                 # Create a new local scope for function parameters and body
-                local_table = table.copy()
+                local_table = {k: v for k, v in table.items() if isinstance(v, tuple) and v[0] == 'function'}
                 for ptype, pname in params:
                     if pname in local_table:
                         raise ValueError(f"Parameter '{pname}' in function '{name}' already declared in this scope")
@@ -80,6 +82,9 @@ class SemanticAnalyzer:
 
     # Questo metodo determina il tipo di un'espressione e verifica la sua correttezza rispetto alla tabella dei simboli.
     def expr_type(self, expr, table):
+
+        global_table = self.symbol_table
+
         match expr:
             case ('int', _):
                 return 'TYPE_INT'
@@ -90,9 +95,12 @@ class SemanticAnalyzer:
             case ('bool', _):
                 return 'TYPE_BOOL'
             case ('var', name): # Verifica se la variabile è dichiarata
-                if name not in table:
+                if name in table:
+                    return table[name]
+                elif name in global_table:
+                    return global_table[name]
+                else:
                     raise ValueError(f"Variable '{name}' not declared")
-                return table[name]
             case ('minus', inner) | ('not', inner): # Verifica l'operatore unario
                 inner_type = self.expr_type(inner, table)
                 if expr[0] == 'minus' and inner_type not in ('TYPE_INT', 'TYPE_FLOAT'):
@@ -153,6 +161,15 @@ class SemanticAnalyzer:
                 self.expr_type(left, table)
                 self.expr_type(right, table)
                 return 'TYPE_STRING'
+
+            case ('pre_increment', name) | ('pre_decrement', name) \
+                 | ('post_increment', name) | ('post_decrement', name): # Verifica l'incremento/decremento prefisso
+                if name not in table:
+                    raise ValueError(f"Variable '{name}' not declared")
+                var_type = table[name]
+                if var_type not in ('TYPE_INT', 'TYPE_FLOAT'):
+                    raise TypeError(f"Increment/decrement not valid for type '{var_type}'")
+                return var_type  # Ritorna il tipo della variabile dopo l'incremento/decremento
 
             case _:
                 raise TypeError(f"Expression not recognized: {expr}")
