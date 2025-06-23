@@ -68,7 +68,7 @@ class SemanticAnalyzer:
                 # Analyze the function body within its local scope
                 for stmt in body:
                     self.visit(stmt, local_table)
-            case ('call', name, args): # Verifica la chiamata a una funzione
+            case ('funcall', name, args): # Verifica la chiamata a una funzione
                 # This case is now handled in expr_type, but it's good to keep a visit for statement-level calls
                 self.expr_type(node, table)  # Delegate type checking to expr_type
             case ('return', expr): # Verifica il tipo di ritorno di una funzione

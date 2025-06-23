@@ -155,19 +155,27 @@ class Interpreter:
                 if len(params) != len(args):
                     raise RuntimeError(f"Function '{name}' expects {len(params)} args, got {len(args)}")
                 arg_values = [self.eval_expr(arg) for arg in args]
-                saved_env = self.env.copy()
-                self.env = self.env.copy()
+
+                local_vars = {}
                 for (ptype, pname), value in zip(params, arg_values):
+                    # Salva il vecchio valore se esiste
+                    if pname in self.env:
+                        local_vars[pname] = self.env[pname]
                     self.env[pname] = (ptype, value)
                 ret_val = None
                 try:
                     for stmt in body:
-                        result = self.execute(stmt, return_type)  # Passa il rettype corrente!
+                        result = self.execute(stmt, return_type)
                         if isinstance(result, tuple) and result[0] == "return":
                             ret_val = result[1]
                             break
                 finally:
-                    self.env = saved_env
+                    # Ripristina solo le variabili locali
+                    for pname in [pname for _, pname in params]:
+                        if pname in local_vars:
+                            self.env[pname] = local_vars[pname]
+                        else:
+                            del self.env[pname]
                 if return_type == "VOID":
                     return None
                 if return_type in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING") and ret_val is None:
@@ -183,24 +191,27 @@ class Interpreter:
 
 if __name__ == "__main__":
     from lexer import lexer
-    from parser import Parser
+    from parser import parser
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
     
+    int c;
+    
+    void somma(int a, int b) {
+        c = a+b;
+    }
+    
     int main() {
-        int a;
-        int b;
-        a = 5;
-        b = 10;
-        cout << "La somma di a e b è: " << (a + b) << endl;
+        somma(5, 3);
+        cout << "La somma è: " << c << endl;
         
         return 0;
     }
     '''
 
     tokens = lexer(codice)
-    parser = Parser(tokens)
+    parser = parser(tokens)
     ast = parser.parse()
     sem_analyzer = SemanticAnalyzer(ast).analyze()
 
@@ -208,7 +219,7 @@ if __name__ == "__main__":
     interpreter = Interpreter(ast)
 
     for stmt in ast:
-        if isinstance(stmt, tuple) and stmt[0] == "function_def":
+        if isinstance(stmt, tuple) and stmt[0] in ("function_def", "declare", "assign"):
             interpreter.execute(stmt)
 
     if "main" not in interpreter.env:

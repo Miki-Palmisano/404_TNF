@@ -1,5 +1,5 @@
 from lexer import lexer
-class Parser:
+class parser:
     def __init__(self, tokens):
         self.tokens = tokens  # Lista di token prodotti dal lexer
         self.pos = 0  # Posizione corrente nella lista dei token
