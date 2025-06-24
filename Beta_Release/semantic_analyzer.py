@@ -62,8 +62,9 @@ class SemanticAnalyzer:
             case ('cout', expr): # Verifica l'output di cout
                 self.expr_type(expr)  # Just ensure the expression can be evaluated
 
-            case ('cin', name): # Verifica l'input di cin
-                self.lookup_variable(name)
+            case ('cin', names):  # ora è una lista
+                for n in names:
+                    self.lookup_variable(n)
 
             case ('function_def', return_type, name, params, body): # Verifica la definizione di una funzione
 

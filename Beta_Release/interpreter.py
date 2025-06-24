@@ -82,19 +82,24 @@ class Interpreter:
                 if output is not None:
                     print(output, end="")
 
-            case ("cin", var):
-                value = input()
-                type_ = self.lookup(var)[0]
-                try:
-                    value = int(value) if type_ == "TYPE_INT" else float(value) if type_ == "TYPE_FLOAT" else value
-                except ValueError:
-                    raise RuntimeError(f"Cannot assign '{value}' to {type_} variable")
-                if type_ == "TYPE_INT":
-                    self.assign(var, (type_, int(value)))
-                elif type_ == "TYPE_FLOAT":
-                    self.assign(var, (type_, float(value)))
-                elif type_ == "TYPE_STRING":
-                    self.assign(var, (type_, value))
+            case ("cin", vars_):  # vars_ è la lista di id
+                raw_inputs = input().strip().split()
+
+                if len(raw_inputs) < len(vars_):
+                    raise RuntimeError(
+                        f"Expected {len(vars_)} inputs, got {len(raw_inputs)}")
+
+                for name, text in zip(vars_, raw_inputs):
+                    tipo, _ = self.lookup(name)
+
+                    try:
+                        value = int(text) if tipo == "TYPE_INT" else \
+                            float(text) if tipo == "TYPE_FLOAT" else text
+                    except ValueError:
+                        raise RuntimeError(
+                            f"Cannot assign '{text}' to {tipo} variable '{name}'")
+
+                    self.assign(name, (tipo, value))
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -249,17 +254,14 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    string dividi(float a, float b) {
-        if (b == 0.0) {
-            cout << "Errore: divisione per zero" << endl;
-            return "Ciao";
-        }
-        return "Ciao";
-    }
+    
     
     int main() {
-        float x = 10.2;
-        cout << "Testo: " << dividi(x, 0.0) << endl;
+        int x;
+        int y;
+        int z;
+        cin >> x >> y >> z;
+        cout << x << y << z;
         return 0;
     }
     '''

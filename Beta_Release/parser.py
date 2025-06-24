@@ -193,17 +193,25 @@ class parser:
         return ("cout", expr)
 
     def cin_statement(self):
-        # Gestisce istruzione cin (input)
+        # cin >> x >> y >> z ;
         self.expect("CIN")
-        self.expect("RSHIFT")
-        var = self.expect("ID")[1]  # Variabile in cui salvare input
 
-        if self.peek() and self.peek()[0] == "SEMICOLON":
-            self.advance()
-        else:
-            self.error("Expected semicolon after cin statement", self.peek())
+        vars_ = []
+        while True:
+            self.expect("RSHIFT")
+            var = self.expect("ID")[1]
+            vars_.append(var)
 
-        return ("cin", var)
+            # fine istruzione
+            if self.peek() and self.peek()[0] == "SEMICOLON":
+                self.advance()  # consuma il ';'
+                break
+
+            # se non c’è un altro “>>” -> errore di sintassi
+            if not self.peek() or self.peek()[0] != "RSHIFT":
+                self.error("Expected '>>' or ';' in cin statement", self.peek())
+
+        return ("cin", vars_)  # ⬅ ritorna lista di nomi
 
     # ---- EXPRESSIONS ----
     def additive(self):
