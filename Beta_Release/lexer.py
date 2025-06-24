@@ -49,7 +49,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    "if", "else", "while", "for", "return", "int", "float", "string", "cin", "cout", "void", "bool", "endl", "true", "false"
+    "if", "else", "while", "return", "int", "float", "string", "cin", "cout", "void", "bool", "endl", "true", "false"
 }
 
 
