@@ -224,7 +224,6 @@ if __name__ == "__main__":
     ast = parser.parse()
     SemanticAnalyzer(ast).analyze()
 
-    print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)
 
     # registra funzioni e variabili globali
