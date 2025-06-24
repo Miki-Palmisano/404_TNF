@@ -21,15 +21,25 @@ class SemanticAnalyzer:
     #  Analisi principale AST
 
     def analyze(self):
+        self.in_main = False
         for stmt in self.ast:
-            self.visit(stmt)
+            # Se trovi la definizione di main, entra in main
+            if isinstance(stmt, tuple) and stmt[0] == "function_def" and stmt[2] == "main":
+                self.in_main = True
+                self.visit(stmt)
+                self.in_main = False
+            else:
+                # Per ogni altro statement globale, controlla se è vietato
+                if isinstance(stmt, tuple) and stmt[0] in ("if", "cin", "cout"):
+                    line = stmt[-2] if len(stmt) > 4 else '?'
+                    raise TypeError(f"Error in line {line}: Instruction '{stmt[0]}' not permissed out of main")
+                self.visit(stmt)
 
     def visit(self, node):
         match node:
 
-            # ── Dichiarazione variabile ────────────────────
-            case ('declare', type_, name, expr):
-                if type_ == "VOID":                                  # ⓐ blocca variabile VOID
+            case ("declare", type_, name, expr):
+                if type_ == "VOID":
                     raise TypeError(f"Variable '{name}' cannot be declared with type VOID")
 
                 if expr:
@@ -39,7 +49,7 @@ class SemanticAnalyzer:
 
                 self.declare_variable(name, type_)
 
-            case ('assign', name, expr):
+            case ("assign", name, expr):
                 expr_type = self.expr_type(expr)
                 var_type = self.lookup_variable(name)
 
@@ -49,7 +59,7 @@ class SemanticAnalyzer:
                 if not self.type_compatible(var_type, expr_type):
                     raise TypeError(f"Type incompatibility in assignment to '{name}': {var_type} vs {expr_type}")
 
-            case ('if', condition, body, else_body):
+            case ("if", condition, body, else_body):
                 cond_type = self.expr_type(condition)
                 if cond_type != 'TYPE_BOOL':
                     raise TypeError(f"If condition must be a boolean, got {cond_type}")
@@ -66,7 +76,7 @@ class SemanticAnalyzer:
                     self.visit(stmt)
                 self.stack_symbol_table.pop()
 
-            case ('while', condition, body):
+            case ("while", condition, body):
                 cond_type = self.expr_type(condition)
                 if cond_type != 'TYPE_BOOL':
                     raise TypeError(f"While condition must be a boolean, got {cond_type}")
@@ -76,16 +86,16 @@ class SemanticAnalyzer:
                     self.visit(stmt)
                 self.stack_symbol_table.pop()
 
-            case ('cout', expr):
+            case ("cout", expr):
                 self.expr_type(expr)    # basta che sia valutabile
 
-            case ('cin', names):        # names è lista di ID
+            case ("cin", names):        # names è lista di ID
                 for n in names:
                     tipo = self.lookup_variable(n)
                     if tipo == "VOID":                      # ⓒ cin su VOID
                         raise TypeError(f"Cannot read input into variable '{n}' of type VOID")
 
-            case ('function_def', return_type, name, params, body):
+            case ("function_def", return_type, name, params, body):
 
                 # nome funzione nello scope corrente
                 self.declare_variable(name, ('function', return_type, params))
@@ -118,11 +128,11 @@ class SemanticAnalyzer:
                         raise TypeError(f"Function '{name}' declared as {return_type[5:].lower()} but has no return statement")
 
             # Chiamata funzione (fuori dalle espressioni)
-            case ('funcall', _name, _args):
+            case ("funcall", _name, _args):
                 self.expr_type(node)
 
             # Return
-            case ('return', expr):
+            case ("return", expr):
                 rt = self.current_function_return_type
                 if rt == "VOID" and expr is not None:
                     raise TypeError("Cannot return a value from a void function")
@@ -132,8 +142,8 @@ class SemanticAnalyzer:
                         raise TypeError(f"Type incompatibility in return: expected {rt}, got {expr_t}")
 
             # ++ / --
-            case ('pre_increment', name) | ('pre_decrement', name) \
-               | ('post_increment', name) | ('post_decrement', name):
+            case ("pre_increment", name) | ("pre_decrement", name) \
+               | ("post_increment", name) | ("post_decrement", name):
                 var_type = self.lookup_variable(name)
                 if var_type not in ('TYPE_INT', 'TYPE_FLOAT'):
                     raise TypeError(f"Increment/decrement not valid for type '{var_type}'")
@@ -147,26 +157,26 @@ class SemanticAnalyzer:
     def expr_type(self, expr):
         match expr:
 
-            case ('int', _):    return 'TYPE_INT'
-            case ('float', _):  return 'TYPE_FLOAT'
-            case ('string', _): return 'TYPE_STRING'
-            case ('bool', _):   return 'TYPE_BOOL'
+            case ("int", _):    return "TYPE_INT"
+            case ("float", _):  return "TYPE_FLOAT"
+            case ("string", _): return "TYPE_STRING"
+            case ("bool", _):   return "TYPE_BOOL"
 
-            case ('var', name):
+            case ("var", name):
                 return self.lookup_variable(name)
 
-            case ('minus', inner) | ('not', inner):
+            case ("minus", inner) | ("not", inner):
                 inner_t = self.expr_type(inner)
-                if expr[0] == 'minus' and inner_t not in ('TYPE_INT', 'TYPE_FLOAT'):
+                if expr[0] == "minus" and inner_t not in ("TYPE_INT", "TYPE_FLOAT"):
                     raise TypeError(f"Unary minus not valid for type '{inner_t}'")
-                if expr[0] == 'not' and inner_t != 'TYPE_BOOL':
+                if expr[0] == "not" and inner_t != "TYPE_BOOL":
                     raise TypeError(f"Logical NOT not valid for type '{inner_t}'")
                 return inner_t
 
             # ── Chiamata funzione dentro espr. ─
-            case ('funcall', name, args):
+            case ("funcall", name, args):
                 entry = self.lookup_variable(name)
-                if not (isinstance(entry, tuple) and entry[0] == 'function'):
+                if not (isinstance(entry, tuple) and entry[0] == "function"):
                     raise ValueError(f"Function '{name}' not declared or is not a function")
 
                 func_return_type, func_params = entry[1], entry[2]
@@ -182,48 +192,48 @@ class SemanticAnalyzer:
                 return func_return_type
 
             # Binop
-            case ('binop', op, left, right):
+            case ("binop", op, left, right):
                 l = self.expr_type(left)
                 r = self.expr_type(right)
 
-                if op in ('PLUS', 'MINUS', 'TIMES', 'DIVIDE', 'MODULE'):
-                    if l == r and l in ('TYPE_INT', 'TYPE_FLOAT'):
+                if op in ("PLUS", "MINUS", "TIMES", "DIVIDE", "MODULE"):
+                    if l == r and l in ("TYPE_INT", "TYPE_FLOAT"):
                         return l
-                    if (l == 'TYPE_INT' and r == 'TYPE_FLOAT') or (l == 'TYPE_FLOAT' and r == 'TYPE_INT'):
-                        return 'TYPE_FLOAT'
-                    if op == 'PLUS' and ('TYPE_STRING' in (l, r)):
-                        return 'TYPE_STRING'
+                    if (l == "TYPE_INT" and r == "TYPE_FLOAT") or (l == "TYPE_FLOAT" and r == "TYPE_INT"):
+                        return "TYPE_FLOAT"
+                    if op == "PLUS" and ("TYPE_STRING" in (l, r)):
+                        return "TYPE_STRING"
                     raise TypeError(f"Arithmetic operation of incompatible type: {l}, {r}")
 
-                if op in ('EQ', 'NEQ', 'LT', 'GT', 'LE', 'GE'):
+                if op in ("EQ", "NEQ", "LT", "GT", "LE", "GE"):
                     if l == r:
-                        return 'TYPE_BOOL'
+                        return "TYPE_BOOL"
                     raise TypeError(f"Incompatible types for comparison: {l}, {r}")
 
-                if op in ('AND', 'OR'):
-                    allowed = ('TYPE_BOOL', 'TYPE_INT', 'TYPE_FLOAT')
+                if op in ("AND", "OR"):
+                    allowed = ("TYPE_BOOL", "TYPE_INT", "TYPE_FLOAT")
                     if l in allowed and r in allowed:
-                        return 'TYPE_BOOL'
+                        return "TYPE_BOOL"
                     raise TypeError(f"Logical operator between unsupported types: {l}, {r}")
 
                 raise TypeError(f"Unknown operator: {op}")
 
             # Concatenazione (simile a cout <<)
-            case ('concat', left, right):
+            case ("concat", left, right):
                 # verifichiamo comunque che gli operandi siano tipi scalari noti
                 lt = self.expr_type(left)
                 rt = self.expr_type(right)
-                allowed = ('TYPE_INT', 'TYPE_FLOAT', 'TYPE_STRING', 'TYPE_BOOL')
+                allowed = ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL")
                 if lt not in allowed or rt not in allowed:
                     raise TypeError(f"Unsupported operands for stream-concat: {lt}, {rt}")
                 # il risultato è sempre una stringa perché alla fine stampiamo testo
                 return 'TYPE_STRING'
 
             # ++/-- in espressione
-            case ('pre_increment', name) | ('pre_decrement', name) \
-                 | ('post_increment', name) | ('post_decrement', name):
+            case ("pre_increment", name) | ("pre_decrement", name) \
+                 | ("post_increment", name) | ("post_decrement", name):
                 var_type = self.lookup_variable(name)
-                if var_type not in ('TYPE_INT', 'TYPE_FLOAT'):
+                if var_type not in ("TYPE_INT", "TYPE_FLOAT"):
                     raise TypeError(f"Increment/decrement not valid for type '{var_type}'")
                 return var_type
 
@@ -235,17 +245,17 @@ class SemanticAnalyzer:
 
     def type_compatible(self, declared, expr_type):
         return declared == expr_type or \
-               (declared == 'TYPE_FLOAT' and expr_type == 'TYPE_INT')
+               (declared == "TYPE_FLOAT" and expr_type == "TYPE_INT")
 
 
     #  Helper per verificare presenza di return
 
     def contains_return(self, stmt):
-        if isinstance(stmt, tuple) and stmt[0] == 'return':
+        if isinstance(stmt, tuple) and stmt[0] == "return":
             return True
-        if isinstance(stmt, tuple) and stmt[0] == 'if':
+        if isinstance(stmt, tuple) and stmt[0] == "if":
             return any(self.contains_return(s) for s in stmt[2]) or \
                    any(self.contains_return(s) for s in stmt[3])
-        if isinstance(stmt, tuple) and stmt[0] == 'while':
+        if isinstance(stmt, tuple) and stmt[0] == "while":
             return any(self.contains_return(s) for s in stmt[2])
         return False

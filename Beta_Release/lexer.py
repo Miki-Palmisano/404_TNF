@@ -8,39 +8,39 @@ L’ordine è importante: i token con pattern più lunghi (come == o &&) vanno p
 '''
 
 TOKEN_SPECIFICATION = [
-    ('FLOAT',       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
-    ('INT',         r'\d+'),             # int number -> \d+ una o più cifre
-    ('STRING',      r'"[^"\n]*"'),       # Stringa delimitata da due virgolette -> [^"\n] che non siano virgolette o a capo, * che sia 0 o più, " " che siano delimitate da virgolette
-    ('ID',          r'[a-zA-Z_]\w*'),    # Identificatore -> qualsiasi sequenza di caratteri che cominci con una lettera (maiuscola o minuscola) o con il carattere _, \w* seguito anche da lettere o numeri
-    ('LSHIFT',      r'<<'),              # << indirizzamento
-    ('RSHIFT',      r'>>'),              # >> indirizzamento
-    ('NEQ',         r'!='),              # Not equal -> diverso
-    ('EQ',          r'=='),              # Equal
-    ('ASSIGN',      r'='),               # Assegnazione
-    ('AND',         r'&&'),              # And
-    ('OR',          r'\|\|'),            # Or
-    ('NOT',         r'!'),               # Not
-    ('COMMENT',     r'//[^\n]*'),        # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
-    ('INCREMENT',   r'\+\+'),            # Incremento -> ++
-    ('DECREMENT',   r'--'),              # Decremento -> --
-    ('PLUS',        r'\+'),              # +
-    ('MINUS',       r'-'),               # -
-    ('TIMES',       r'\*'),              # *
-    ('DIVIDE',      r'/'),               # /
-    ('MODULE',      r'%'),               # %
-    ('LE',          r'<='),              # minore o uguale
-    ('GE',          r'>='),              # maggiore o uguale
-    ('LT',          r'<'),               # minore
-    ('GT',          r'>'),               # maggiore
-    ('LPAREN',      r'\('),              # ( parentesi aperta
-    ('RPAREN',      r'\)'),              # ) parentesi chiusa
-    ('LBRACE',      r'\{'),              # { parentesi aperta
-    ('RBRACE',      r'\}'),              # } parentesi chiusa
-    ('SEMICOLON',   r';'),               # ;
-    ('COMMA',       r','),               # ,
-    ('SKIP',        r'[ \t]+'),          # Ignora gli spazi e le tabulazioni, non significative in C++
-    ('NEWLINE',     r'\n'),              # Nuova linea
-    ('MISMATCH',    r'.'),               # qualsiasi altro carattere
+    ("FLOAT",       r'\d+\.\d+'),        # float number -> \d+\.\d+ una o più cifre seguite da un punto e da 1 o più cifre
+    ("INT",         r'\d+'),             # int number -> \d+ una o più cifre
+    ("STRING",      r'"[^"\n]*"'),       # Stringa delimitata da due virgolette -> [^"\n] che non siano virgolette o a capo, * che sia 0 o più, " " che siano delimitate da virgolette
+    ("ID",          r'[a-zA-Z_]\w*'),    # Identificatore -> qualsiasi sequenza di caratteri che cominci con una lettera (maiuscola o minuscola) o con il carattere _, \w* seguito anche da lettere o numeri
+    ("LSHIFT",      r'<<'),              # << indirizzamento
+    ("RSHIFT",      r'>>'),              # >> indirizzamento
+    ("NEQ",         r'!='),              # Not equal -> diverso
+    ("EQ",          r'=='),              # Equal
+    ("ASSIGN",      r'='),               # Assegnazione
+    ("AND",         r'&&'),              # And
+    ("OR",          r'\|\|'),            # Or
+    ("NOT",         r'!'),               # Not
+    ("COMMENT",     r'//[^\n]*'),        # Commento su una riga -> // seguito da qualsiasi carattere fino alla fine della riga
+    ("INCREMENT",   r'\+\+'),            # Incremento -> ++
+    ("DECREMENT",   r'--'),              # Decremento -> --
+    ("PLUS",        r'\+'),              # +
+    ("MINUS",       r'-'),               # -
+    ("TIMES",       r'\*'),              # *
+    ("DIVIDE",      r'/'),               # /
+    ("MODULE",      r'%'),               # %
+    ("LE",          r'<='),              # minore o uguale
+    ("GE",          r'>='),              # maggiore o uguale
+    ("LT",          r'<'),               # minore
+    ("GT",          r'>'),               # maggiore
+    ("LPAREN",      r'\('),              # ( parentesi aperta
+    ("RPAREN",      r'\)'),              # ) parentesi chiusa
+    ("LBRACE",      r'\{'),              # { parentesi aperta
+    ("RBRACE",      r'\}'),              # } parentesi chiusa
+    ("SEMICOLON",   r';'),               # ;
+    ("COMMA",       r','),               # ,
+    ("SKIP",        r'[ \t]+'),          # Ignora gli spazi e le tabulazioni, non significative in C++
+    ("NEWLINE",     r'\n'),              # Nuova linea
+    ("MISMATCH",    r'.'),               # qualsiasi altro carattere
 ]
 
 
@@ -49,7 +49,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    'if', 'else', 'while', 'for', 'return', 'int', 'float', 'string', 'cin', 'cout','void', 'bool', 'endl','true','false'
+    "if", "else", "while", "for", "return", "int", "float", "string", "cin", "cout", "void", "bool", "endl", "true", "false"
 }
 
 
@@ -83,21 +83,21 @@ def lexer(code):
     while tok is not None:   # Entra in un ciclo che continua finché trova token (mo è il match object).
         typ = tok.lastgroup
         val = tok.group(typ)
-        if typ == 'NEWLINE':        # se trova un token NEWLINE (\n), aumenta il contatore delle righe.
+        if typ == "NEWLINE":        # se trova un token NEWLINE (\n), aumenta il contatore delle righe.
             line_num += 1
-        elif typ == 'SKIP' or typ == 'COMMENT':         # se trova spazi o tab (SKIP), li ignora.
+        elif typ == "SKIP" or typ == "COMMENT":         # se trova spazi o tab (SKIP), li ignora.
             pass
-        elif typ == 'MISMATCH':
-            raise RuntimeError(f'Unexpected character {val!r} on line {line_num}') # se trova caratteri non previsti, lancia un errore (ti dice dove c’è il problema).
+        elif typ == "MISMATCH":
+            raise RuntimeError(f"Unexpected character {val!r} on line {line_num}") # se trova caratteri non previsti, lancia un errore (ti dice dove c’è il problema).
         else:
-            if typ == 'ID' and val in KEYWORDS:
-                if val in ('int', 'float', 'string', 'bool'):
-                    typ = "TYPE_"+val.upper()
-                elif val in ('true', 'false'):
+            if typ == "ID" and val in KEYWORDS:
+                if val in ("int", "float", "string", "bool"):
+                    typ = "TYPE_" + val.upper()
+                elif val in ("true", "false"):
                     typ = "BOOL"
                 else:
                     typ = val.upper()
-            elif typ == 'STRING': # se trova una stringa, rimuove le virgolette iniziali e finali.
+            elif typ == "STRING": # se trova una stringa, rimuove le virgolette iniziali e finali.
                 val = val[1:-1]
 
             tokens.append((typ, val, line_num))   # aggiunge (tipo, valore) alla lista dei token trovati.

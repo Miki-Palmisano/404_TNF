@@ -120,7 +120,7 @@ class Parser:
             else:
                 return ("pre_decrement", name)
         else:
-            self.error("Invalid statement after identifier", tok)
+            self.error(f"Invalid statement after identifier", tok)
 
     def if_statement(self):
         # Gestisce istruzione if...else...
@@ -211,7 +211,7 @@ class Parser:
             if not self.peek() or self.peek()[0] != "RSHIFT":
                 self.error("Expected '>>' or ';' in cin statement", self.peek())
 
-        return ("cin", vars_)  # ⬅ ritorna lista di nomi
+        return ("cin", vars_)
 
     # ---- EXPRESSIONS ----
     def additive(self):
