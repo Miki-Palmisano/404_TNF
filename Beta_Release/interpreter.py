@@ -37,23 +37,12 @@ class Interpreter:
 
             case ("declare", tipo, name, expr):
                 value = self.eval_expr(expr) if expr else None
-                # Controllo: se expr è funcall e la funzione è void, errore!
-                if isinstance(expr, tuple) and expr[0] == "funcall":
-                    func_name = expr[1]
-                    func = self.lookup(func_name)
-                    if func[1] == "VOID":
-                        raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
                 self.declare(name, tipo, value)
 
             case ("assign", name, expr):
                 value = self.eval_expr(expr)
-                if isinstance(expr, tuple) and expr[0] == "funcall":
-                    func_name = expr[1]
-                    func = self.lookup(func_name)
-                    if func[1] == "VOID":
-                        raise RuntimeError(f"Cannot assign the result of void function '{func_name}' to a variable")
-                type_, _ = self.lookup(name)
-                self.assign(name, (type_, value))
+                _, _ = self.lookup(name)
+                self.assign(name, (self.lookup(name)[0], value))
 
             case ("if", cond, body, else_body):
                 self.env_stack.append({})  # Aggiunge un nuovo ambiente locale per l'if
@@ -105,61 +94,32 @@ class Interpreter:
                 self.eval_expr(("funcall", name, args))
 
             case ("return", expr):
-                # Passa il rettype corrente (lo passa funcall nell'argomento current_function_returntype)
-                if current_function_returntype == "VOID" and expr is not None:
-                    raise RuntimeError("Cannot return a value from a void function")
                 val = self.eval_expr(expr) if expr is not None else None
-
-                if current_function_returntype in ("TYPE_INT", "TYPE_FLOAT", "TYPE_STRING", "TYPE_BOOL"):
-
-                    type_map = {
-                        int: "TYPE_INT",
-                        float: "TYPE_FLOAT",
-                        str: "TYPE_STRING",
-                        bool: "TYPE_BOOL"
-                    }
-                    val_type = type_map.get(type(val))
-
-                    if not (val_type == current_function_returntype or
-                            (current_function_returntype == "TYPE_FLOAT" and val_type == "TYPE_INT")):
-                        raise RuntimeError(
-                            f"Return type mismatch: expected {current_function_returntype[5:].lower()}, got {val_type[5:].lower() if val_type else type(val).__name__}")
                 return ("return", val)
 
             case ("pre_increment", var):
                 type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot increment variable '{var}' of type {type_}")
                 new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
                 self.assign(var, (type_, new_value))
-                return new_value  # Restituisce il nuovo valore dopo l'incremento
+                return new_value
 
             case ("pre_decrement", var):
                 type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot decrement variable '{var}' of type {type_}")
                 new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
                 self.assign(var, (type_, new_value))
-                return new_value  # Restituisce il nuovo valore dopo il decremento
+                return new_value
 
             case ("post_increment", var):
                 type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot increment variable of type '{type_}'")
                 new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
                 self.assign(var, (type_, new_value))
-                return value  # Restituisce il valore prima dell'incremento
+                return value
 
             case ("post_decrement", var):
                 type_, value = self.lookup(var)
-                if type_ not in ("TYPE_INT", "TYPE_FLOAT"):
-                    raise RuntimeError(f"Cannot decrement variable of type '{type_}'")
                 new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
                 self.assign(var, (type_, new_value))
-                return value  # Restituisce il valore prima del decremento
-
-            case _:
-                raise RuntimeError(f"Unknown statement: {node}")
+                return value
 
     def eval_expr(self, expr):
         match expr:
