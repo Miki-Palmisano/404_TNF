@@ -250,7 +250,7 @@ class Interpreter:
 
 if __name__ == "__main__":
     from lexer import lexer
-    from parser import parser
+    from parser import Parser
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
@@ -267,18 +267,16 @@ if __name__ == "__main__":
     '''
 
     tokens = lexer(codice)
-    parser = parser(tokens)
+    parser = Parser(tokens)
     ast = parser.parse()
-    sem_analyzer = SemanticAnalyzer(ast).analyze()
+    SemanticAnalyzer(ast).analyze()
 
     print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)
 
+    # prima registra solo le funzioni globali nell'interprete
     for stmt in ast:
-        if isinstance(stmt, tuple) and stmt[0] in ("function_def", "declare", "assign"):
+        if isinstance(stmt, tuple) and stmt[0] == "function_def":
             interpreter.execute(stmt)
 
-    if "main" not in interpreter.env_stack[0]:
-        raise RuntimeError("No main function defined in the code")
-    else:
-        interpreter.eval_expr(("funcall", "main", []))  # Esegui la funzione main
+    interpreter.eval_expr(("funcall", "main", []))
