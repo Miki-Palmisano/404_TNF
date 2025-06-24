@@ -25,7 +25,7 @@ class Interpreter:
         raise RuntimeError(f"Variable '{name}' not declared")
 
     def declare(self, name, tipo, value):
-        env = self.env_stack[-1] # Prende l'ambiente corrente (l'ultimo della pila, funziona poiché l'ultimo è quello locale cancellato dopo l'esecuzione)
+        env = self.env_stack[-1] # Prende l'ambiente corrente
         if name in env:
             raise RuntimeError(f"Variable '{name}' already declared")
         env[name] = (tipo, value)
@@ -71,24 +71,22 @@ class Interpreter:
                 if output is not None:
                     print(output, end="")
 
-            case ("cin", vars_):  # vars_ è la lista di id
-                raw_inputs = input().strip().split()
+            case ("cin", vars_):   # Gestisce l'input da tastiera per più variabili
+                raw_inputs = input().strip().split()  # Legge la riga e la divide in parole (valori)
 
-                if len(raw_inputs) < len(vars_):
+                if len(raw_inputs) < len(vars_):  # Verifica che ci siano abbastanza input
                     raise RuntimeError(
                         f"Expected {len(vars_)} inputs, got {len(raw_inputs)}")
 
-                for name, text in zip(vars_, raw_inputs):
-                    tipo, _ = self.lookup(name)
-
-                    try:
+                for name, text in zip(vars_, raw_inputs):  # Associa ogni input a una variabile
+                    tipo, _ = self.lookup(name)   # Recupera il tipo della variabile
+                    try:  # Prova a convertire in base al tipo
                         value = int(text) if tipo == "TYPE_INT" else \
                             float(text) if tipo == "TYPE_FLOAT" else text
-                    except ValueError:
+                    except ValueError:  # Errore se la conversione fallisce
                         raise RuntimeError(
                             f"Cannot assign '{text}' to {tipo} variable '{name}'")
-
-                    self.assign(name, (tipo, value))
+                    self.assign(name, (tipo, value))  # Assegna il valore convertito alla variabile
 
             case ("funcall", name, args):
                 self.eval_expr(("funcall", name, args))
@@ -97,13 +95,13 @@ class Interpreter:
                 val = self.eval_expr(expr) if expr is not None else None
                 return ("return", val)
 
-            case ("pre_increment", var):
+            case ("pre_increment", var):  # Gestisce ++x;
                 type_, value = self.lookup(var)
                 new_value = value + 1 if type_ == "TYPE_INT" else value + 1.0
                 self.assign(var, (type_, new_value))
                 return new_value
 
-            case ("pre_decrement", var):
+            case ("pre_decrement", var):  # Gestisce --x;
                 type_, value = self.lookup(var)
                 new_value = value - 1 if type_ == "TYPE_INT" else value - 1.0
                 self.assign(var, (type_, new_value))
@@ -124,10 +122,9 @@ class Interpreter:
     def eval_expr(self, expr):
         match expr:
             case ("int", val): return int(val)
-
             case ("float", val): return float(val)
-
             case ("string", val): return val
+            case ('bool', value): return value.lower() == 'true'
 
             case ("var", name):
                 return self.lookup(name)[1]
@@ -142,29 +139,24 @@ class Interpreter:
 
             case ('minus', inner): return -self.eval_expr(inner)
 
-            case ('bool', value): return value.lower() == 'true'
-
             case ('binop', op, left, right):
                 l = self.eval_expr(left)
                 r = self.eval_expr(right)
 
-                # blocco per AND/OR
-                if op in ("AND", "OR"):
-                    # impedisci l'uso con stringhe
-                    if isinstance(l, str) or isinstance(r, str):
-                        raise RuntimeError("Cannot apply logical AND/OR to string operands")
-                    if op == "AND":
-                        return int(bool(l) and bool(r))  # 0 o 1
-                    else:  # "OR"
-                        return int(bool(l) or bool(r))
                 match op:
                     case "PLUS": return l + r
                     case "MINUS": return l - r
                     case "TIMES": return l * r
                     case "DIVIDE": return l / r
                     case "MODULE": return l % r
-                    case "AND": return bool(l) and bool(r)
-                    case "OR": return bool(l) or bool(r)
+                    case "AND":
+                        if isinstance(l, str) or isinstance(r, str):
+                            raise RuntimeError("Cannot apply logical AND to string operands")
+                        return int(bool(l) and bool(r))
+                    case "OR":
+                        if isinstance(l, str) or isinstance(r, str):
+                            raise RuntimeError("Cannot apply logical OR to string operands")
+                        return int(bool(l) or bool(r))
                     case "NEQ": return l != r
                     case "EQ": return l == r
                     case "LT": return l < r
@@ -317,11 +309,6 @@ int main() {
 
     print("\n--- Interprete Output ---")
     interpreter = Interpreter(ast)
-
-    # prima registra solo le funzioni globali nell'interprete
-    for stmt in ast:
-        if isinstance(stmt, tuple) and stmt[0] == "function_def":
-            interpreter.execute(stmt)
 
     # registra funzioni e variabili globali
     for stmt in ast:
