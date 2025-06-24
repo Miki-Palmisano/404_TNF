@@ -205,7 +205,8 @@ class SemanticAnalyzer:
                     raise TypeError(f"Arithmetic operation of incompatible type: {l}, {r}")
 
                 if op in ("EQ", "NEQ", "LT", "GT", "LE", "GE"):
-                    if l == r:
+                    numeric_types = ("TYPE_INT", "TYPE_FLOAT")
+                    if (l == r) or (l in numeric_types and r in numeric_types):
                         return "TYPE_BOOL"
                     raise TypeError(f"Incompatible types for comparison: {l}, {r}")
 
