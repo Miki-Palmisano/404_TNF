@@ -144,7 +144,10 @@ class Interpreter:
                 r = self.eval_expr(right)
 
                 match op:
-                    case "PLUS": return l + r
+                    case "PLUS":
+                        if isinstance(l, str) or isinstance(r, str):
+                            return str(l) + str(r)
+                        return l + r
                     case "MINUS": return l - r
                     case "TIMES": return l * r
                     case "DIVIDE": return l / r
@@ -206,17 +209,25 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int z = 0;
-    int somma(int a, int b) {
-        return a + b;
-    }
-    int main() {
-        int x = 5;
-        int y = 10;
-        z = somma(x, y);
-        cout << "La somma è: " << z << endl;
-        return 0;
-    }
+    string greet = "Hi";
+bool   flag  = true;
+
+void toggle() {             // funzione VOID
+    flag = !flag;            // NOT logico
+}
+
+string combine(int v) {      // funzione STRING
+    return greet + " #" + v; // concatenazione stringa + int
+}
+
+int main() {
+    int count = 2;
+    toggle();
+    cout << "Flag is " << flag << endl;
+    cout << combine(count++) << endl;       // post-incremento
+    cout << combine(++count) << endl;       // pre-incremento
+    return 0;
+}
     '''
 
     tokens = lexer(codice)
