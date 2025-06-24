@@ -31,8 +31,7 @@ class SemanticAnalyzer:
             else:
                 # Per ogni altro statement globale, controlla se è vietato
                 if isinstance(stmt, tuple) and stmt[0] in ("if", "cin", "cout"):
-                    line = stmt[-2] if len(stmt) > 4 else '?'
-                    raise TypeError(f"Error in line {line}: Instruction '{stmt[0]}' not permissed out of main")
+                    raise TypeError(f"Instruction '{stmt[0]}' not permissed out of main")
                 self.visit(stmt)
 
     def visit(self, node):

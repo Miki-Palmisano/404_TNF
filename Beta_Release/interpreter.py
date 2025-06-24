@@ -215,7 +215,6 @@ if __name__ == "__main__":
         int y = 10;
         z = somma(x, y);
         cout << "La somma è: " << z << endl;
-        cin >> x >> y;
         return 0;
     }
     '''
