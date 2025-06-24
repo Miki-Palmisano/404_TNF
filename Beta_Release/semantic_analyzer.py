@@ -208,12 +208,15 @@ class SemanticAnalyzer:
 
                 raise TypeError(f"Unknown operator: {op}")
 
-            # Concatenazione stringhe
+            # Concatenazione (simile a cout <<)
             case ('concat', left, right):
+                # verifichiamo comunque che gli operandi siano tipi scalari noti
                 lt = self.expr_type(left)
                 rt = self.expr_type(right)
-                if lt != 'TYPE_STRING' and rt != 'TYPE_STRING':
-                    raise TypeError(f"Concatenation requires at least one string, got {lt}, {rt}")
+                allowed = ('TYPE_INT', 'TYPE_FLOAT', 'TYPE_STRING', 'TYPE_BOOL')
+                if lt not in allowed or rt not in allowed:
+                    raise TypeError(f"Unsupported operands for stream-concat: {lt}, {rt}")
+                # il risultato è sempre una stringa perché alla fine stampiamo testo
                 return 'TYPE_STRING'
 
             # ++/-- in espressione
