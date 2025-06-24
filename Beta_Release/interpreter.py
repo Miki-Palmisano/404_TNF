@@ -214,16 +214,100 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    
-    
-    int main() {
-        int x;
-        int y;
-        int z;
-        cin >> x >> y >> z;
-        cout << x << y << z;
-        return 0;
+string greet   = "Hello";
+int    counter = 3;
+float  ratio   = 2.5;
+bool   flag    = true;
+
+void printGlobals() {
+    cout << "Globals -> " << greet << " "
+         << counter << " "
+         << ratio   << " "
+         << flag    << endl;
+}
+
+int add(int a, int b) {
+    return a + b;
+}
+
+float divideIf(int a, int b) {
+    if (b == 0) {
+        cout << "Divide by zero!" << endl;
+        return 0.0;           // ok: funzione FLOAT
+    } else {
+        return a / b;         // int / int → int, compatibile con float
     }
+}
+
+bool isPrime(int n) {
+    if (n < 2) {
+        return false;
+    }
+    int i = 2;
+    while (i < n) {
+        if (n % i == 0) {
+            return false;
+        }
+        i++;
+    }
+    return true;
+}
+
+string describeNumber(int n) {
+    if (isPrime(n)) {
+        return "prime";
+    } else if (n % 2 == 0) {
+        return "even";
+    } else {
+        return "odd";
+    }
+}
+
+void useIncrement() {
+    int v = 5;
+    cout << "v orig: " << v   << endl;
+    cout << "++v   : " << ++v << endl;   // pre-inc
+    cout << "v++   : " << v++ << endl;   // post-inc
+    cout << "v now : " << v   << endl;
+}
+
+int main() {
+    int limit;
+    cout << "Enter limit:" << endl;
+    cin  >> limit;
+
+    int extra1;
+    int extra2;
+    cout << "Enter two more ints:" << endl;
+    cin >> extra1 >> extra2;
+
+    int i = 0;
+    while (i <= limit) {
+        string desc = describeNumber(i);
+        cout << i << " is " << desc << endl;
+        i++;
+    }
+
+    printGlobals();
+
+    int  sum = add(limit, counter);
+    cout << "limit + counter = " << sum << endl;
+
+    float res = divideIf(sum, i - 1);
+    cout << "sum / (i-1) = " << res << endl;
+
+    useIncrement();
+
+    bool logicTest = (limit > 10) && flag;
+    cout << "limit > 10 AND flag = " << logicTest << endl;
+
+    bool nested = !((extra1 < extra2) || (extra1 == extra2));
+    cout << "NOT(extra1<extra2 OR ==) = " << nested << endl;
+
+    return 0;
+}
+
+
     '''
 
     tokens = lexer(codice)
@@ -237,6 +321,11 @@ if __name__ == "__main__":
     # prima registra solo le funzioni globali nell'interprete
     for stmt in ast:
         if isinstance(stmt, tuple) and stmt[0] == "function_def":
+            interpreter.execute(stmt)
+
+    # registra funzioni e variabili globali
+    for stmt in ast:
+        if isinstance(stmt, tuple) and stmt[0] in ("function_def", "declare", "assign"):
             interpreter.execute(stmt)
 
     interpreter.eval_expr(("funcall", "main", []))
