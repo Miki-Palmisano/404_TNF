@@ -1,4 +1,4 @@
-## INTERPRETE C++ SCRITTO IN PYTHON
+## INTERPRETE C++
 Questo report descrive un insieme di strumenti basati su Python progettati per elaborare un sottoinsieme del linguaggio C++. La suite include un Analizzatore Lessicale (Lexer), un Analizzatore Sintattico (Parser), un Analizzatore Semantico e un Interprete, formando una pipeline completa per trasformare il codice sorgente C++ in azioni eseguibili.
 ## TERMINI E CONDIZIONI D'USO
 
