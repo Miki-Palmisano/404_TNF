@@ -209,13 +209,16 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    int main() {
-        int i = 0;
+    int somma(int a, int b) {
+        int moltiplicazione(int x, int y) {
+            return x * y;
+        }
+        return a + b;
+    }
     
-        do {
-            cout << i << endl;
-            i++;
-        } while (i < 10);    
+    
+    int main() {
+        int i = 0;    
     
         return 0;
     }

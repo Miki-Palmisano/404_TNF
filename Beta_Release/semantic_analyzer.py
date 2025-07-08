@@ -96,6 +96,13 @@ class SemanticAnalyzer:
 
             case ("function_def", return_type, name, params, body):
 
+                if self.in_main and name != "main":
+                    raise TypeError(f"Function '{name}' cannot be defined inside main")
+                if return_type == "VOID" and name == "main":
+                    raise TypeError("Function 'main' cannot be declared as VOID")
+                if name == "main" and not self.in_main:
+                    raise TypeError("Function 'main' must be defined at the top level, not inside another function")
+
                 # nome funzione nello scope corrente
                 self.declare_variable(name, ('function', return_type, params))
 
