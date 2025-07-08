@@ -69,6 +69,7 @@ class Parser:
         self.expect("SEMICOLON")
         return ("return", expr)
 
+
     def declaration(self):
         # Gestisce dichiarazione variabili, es: int x = 5;
         type_ = self.advance()[0]  # Prende il tipo (INT/FLOAT/STRING)
@@ -121,6 +122,11 @@ class Parser:
                 return ("pre_decrement", name)
         else:
             self.error(f"Invalid statement after identifier", tok)
+
+        '''elif tok and tok[0] == "INCREMENT": # gestione corretta dell'incremento postfisso
+            self.advance()
+            self.expect("SEMICOLON")  # Consuma ";"
+            return ("post_increment", name)'''
 
     def if_statement(self):
         # Gestisce istruzione if...else...
@@ -321,6 +327,8 @@ class Parser:
             ptype = self.advance()[0]  # tipo parametro
             pname = self.expect("ID")[1]  # nome parametro
             params.append((ptype, pname))
+            if not self.peek() or self.peek()[0] not in ("COMMA", "RPAREN"):
+                self.error("Expected ',' or ')' after parameter", self.peek())
             if self.peek() and self.peek()[0] == "COMMA":
                 self.advance()  # ,
         self.expect("RPAREN")  # )
@@ -340,14 +348,9 @@ class Parser:
 if __name__ == "__main__":
     # Esempio di codice C++ da analizzare
     codice = '''
-    bool bothPositive(int a, int b) {
-    return (a > 0 && b > 0);  // ← qui c'è l'uso corretto di &&
-}
-
-int main() {
-    std::cout << bothPositive(3, 4) << std::endl;  // stampa 1
-    return 0;
-}
+    int main() {
+        int i = 5 + 3 * 2;
+    }
     '''
     tokens = lexer(codice)  # Analizza il codice in token
     parser = Parser(tokens)  # Istanzia il parser

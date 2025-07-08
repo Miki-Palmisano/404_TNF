@@ -49,7 +49,7 @@ Elenca le parole chiave C++ che il lexer dovrà distinguere dagli identificatori
 '''
 # Reserved keywords (C++ subset)
 KEYWORDS = {
-    "if", "else", "while", "return", "int", "float", "string", "cin", "cout", "void", "bool", "endl", "true", "false"
+    "if", "else", "while", "return", "int", "float", "string", "cin", "cout", "void", "bool", "endl", "true", "false", "for", "do"
 }
 
 
@@ -74,7 +74,6 @@ token_regex = '|'.join(token_parts)  # Unisci tutte le parti in una sola grande 
 get_token = re.compile(token_regex).match  # Compila la regex in un oggetto "regex"
                                            # .match è un metodo che, dato un testo e una posizione,
                                            # cerca se almeno una di queste regex combacia con l'inizio del testo
-
 
 def lexer(code):
     line_num = 1            # tiene traccia del numero di riga (utile per errori).

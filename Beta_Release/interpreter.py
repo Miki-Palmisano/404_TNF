@@ -209,25 +209,16 @@ if __name__ == "__main__":
     from semantic_analyzer import SemanticAnalyzer
 
     codice = '''
-    string greet = "Hi";
-bool   flag  = true;
-
-void toggle() {             // funzione VOID
-    flag = !flag;            // NOT logico
-}
-
-string combine(int v) {      // funzione STRING
-    return greet + " #" + v; // concatenazione stringa + int
-}
-
-int main() {
-    int count = 2;
-    toggle();
-    cout << "Flag is " << flag << endl;
-    cout << combine(count++) << endl;       // post-incremento
-    cout << combine(++count) << endl;       // pre-incremento
-    return 0;
-}
+    int main() {
+        int i = 0;
+    
+        do {
+            cout << i << endl;
+            i++;
+        } while (i < 10);    
+    
+        return 0;
+    }
     '''
 
     tokens = lexer(codice)

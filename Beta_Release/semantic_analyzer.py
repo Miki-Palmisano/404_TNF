@@ -1,7 +1,7 @@
 class SemanticAnalyzer:
     def __init__(self, ast):
         self.ast = ast
-        self.stack_symbol_table = [{}]          # ➊ pila di scope (0 = globale)
+        self.stack_symbol_table = [{}]          # pila di scope (0 = globale)
         self.current_function_return_type = None
 
     #  Helpers per la tabella dei simboli
@@ -52,7 +52,7 @@ class SemanticAnalyzer:
                 expr_type = self.expr_type(expr)
                 var_type = self.lookup_variable(name)
 
-                if var_type == "VOID":                               # ⓑ assegnare a VOID è vietato
+                if var_type == "VOID":                               # assegnare a VOID è vietato
                     raise TypeError(f"Cannot assign to variable '{name}' of type VOID")
 
                 if not self.type_compatible(var_type, expr_type):
@@ -91,7 +91,7 @@ class SemanticAnalyzer:
             case ("cin", names):        # names è lista di ID
                 for n in names:
                     tipo = self.lookup_variable(n)
-                    if tipo == "VOID":                      # ⓒ cin su VOID
+                    if tipo == "VOID":                      # cin su VOID
                         raise TypeError(f"Cannot read input into variable '{n}' of type VOID")
 
             case ("function_def", return_type, name, params, body):
